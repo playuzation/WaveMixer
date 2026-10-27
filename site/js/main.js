@@ -1,7 +1,17 @@
 // 페이지 진입점. 상태(state)·계산(synth)·샘플(samples)·말하기(speech)·소리(audio)·화면(view) 모듈을 조립한다.
 // 하위 모듈끼리는 서로 import하지 않는다(main → 각 모듈의 트리 구조).
 import { createHistory } from './state/history.js';
-import { addWave, createWaves, removeWave, parseFrequency, MIN_FREQUENCY, MAX_FREQUENCY } from './state/waves.js';
+import {
+  addWave,
+  createWaves,
+  removeWave,
+  parseFrequency,
+  parseAmplitude,
+  MIN_FREQUENCY,
+  MAX_FREQUENCY,
+  MIN_AMPLITUDE,
+  MAX_AMPLITUDE,
+} from './state/waves.js';
 import { fundamentalOf, mixAt, retune } from './synth/mixer.js';
 import { NOTES } from './synth/notes.js';
 import { renderSound } from './synth/render.js';
@@ -23,6 +33,7 @@ const SPEECH_SAMPLE_RATE = 44100;
 const $ = (id) => document.getElementById(id);
 const form = $('wave-form');
 const input = $('frequency');
+const amplitudeInput = $('amplitude');
 const error = $('frequency-error');
 const undoButton = $('undo');
 const redoButton = $('redo');
@@ -39,7 +50,7 @@ const renderList = createWaveList($('wave-list'), (id) => commit(removeWave(hist
 const notePad = createNotePad($('notes'), NOTES, {
   onPress(note, duration) {
     setMixPlaying(false);
-    player.play(retune(frequencies(), note.frequency), duration);
+    player.play(retune(history.present, note.frequency), duration);
   },
   onRelease() {
     player.stop();
@@ -49,7 +60,7 @@ const notePad = createNotePad($('notes'), NOTES, {
 // 샘플을 고르면 목록 전체를 그 샘플의 코사인파로 바꾼다(실행 취소 한 번으로 되돌릴 수 있음).
 createSamplePicker({ tabs: $('sample-groups'), grid: $('sample-buttons') }, SAMPLE_GROUPS, (sample) => {
   $('sample-hint').textContent = `${sample.name} (${sample.detail.join(', ')}): ${sample.basis}`;
-  commit(createWaves(sample.frequencies));
+  commit(createWaves(sample.components));
 });
 
 function commit(waves) {
@@ -93,7 +104,7 @@ function drawWave() {
     return;
   }
   const duration = SHOWN_PERIODS / fundamentalOf(list);
-  drawScope(canvas, (t) => mixAt(list, t), {
+  drawScope(canvas, (t) => mixAt(history.present, t), {
     duration,
     cycles: Math.max(...list) * duration,
     divisions: SHOWN_PERIODS,
@@ -130,7 +141,7 @@ function render() {
   }
 
   if (mixPlaying) {
-    if (hasWaves) player.play(list);
+    if (hasWaves) player.play(history.present);
     else {
       player.stop();
       setMixPlaying(false);
@@ -139,36 +150,47 @@ function render() {
   drawWave();
 }
 
-function showError(message) {
+// field: 잘못 입력된 칸(없으면 오류 표시를 지운다)
+function showError(message, field) {
   error.textContent = message;
   error.hidden = !message;
-  if (message) input.setAttribute('aria-invalid', 'true');
-  else input.removeAttribute('aria-invalid');
+  for (const element of [input, amplitudeInput]) {
+    if (element === field) element.setAttribute('aria-invalid', 'true');
+    else element.removeAttribute('aria-invalid');
+  }
 }
 
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   const frequency = parseFrequency(input.value);
-  if (frequency === null) {
-    showError(`${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수를 입력하세요.`);
-    input.select();
-    input.focus();
+  const amplitude = parseAmplitude(amplitudeInput.value);
+  const invalid =
+    frequency === null
+      ? [input, `${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수를 입력하세요.`]
+      : amplitude === null && [amplitudeInput, `진폭은 ${MIN_AMPLITUDE} ~ ${MAX_AMPLITUDE} 사이의 수를 입력하세요.`];
+  if (invalid) {
+    const [field, message] = invalid;
+    showError(message, field);
+    field.select();
+    field.focus();
     return;
   }
   showError('');
   input.value = '';
+  amplitudeInput.value = '';
   input.focus();
-  commit(addWave(history.present, frequency));
+  commit(addWave(history.present, frequency, amplitude));
 });
 
 input.addEventListener('input', () => showError(''));
+amplitudeInput.addEventListener('input', () => showError(''));
 noteFixedToggle.addEventListener('change', updateNoteMode);
 undoButton.addEventListener('click', undo);
 redoButton.addEventListener('click', redo);
 
 mixButton.addEventListener('click', () => {
   if (mixPlaying) player.stop();
-  else player.play(frequencies());
+  else player.play(history.present);
   setMixPlaying(!mixPlaying);
 });
 
@@ -176,7 +198,7 @@ mixButton.addEventListener('click', () => {
 // 입력창에 글자가 있을 때는 브라우저 기본 텍스트 undo를 그대로 둔다.
 document.addEventListener('keydown', (event) => {
   if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
-  if (event.target === input && input.value) return;
+  if ((event.target === input || event.target === amplitudeInput) && event.target.value) return;
   const key = event.key.toLowerCase();
   if (key === 'z' && !event.shiftKey) {
     event.preventDefault();
@@ -310,7 +332,9 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   drawSentence();
 });
 
-$('frequency-help').textContent = `${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수를 입력하고 Enter 또는 추가를 누르세요.`;
+$('frequency-help').textContent =
+  `주파수는 ${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수, 진폭은 ${MIN_AMPLITUDE} ~ ${MAX_AMPLITUDE} 사이의 배율(비우면 1)을 ` +
+  '입력하고 Enter 또는 추가를 누르세요.';
 updateNoteMode();
 render();
 updateSyllable(false);

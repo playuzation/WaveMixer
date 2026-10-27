@@ -293,7 +293,19 @@ input:focus-visible {
 
 .input-row {
   display: flex;
+  align-items: flex-end;
   gap: 8px;
+}
+
+.field {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.amplitude-field {
+  flex: 0 0 5.5rem;
 }
 
 .input-row input {
@@ -570,13 +582,18 @@ input:focus-visible {
   font-family: var(--mono);
   font-size: 0.9rem;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .wave-hz {
   color: var(--text-2);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.wave-db {
+  display: block;
+  font-size: 0.75rem;
 }
 
 .wave-remove {
