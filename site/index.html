@@ -44,18 +44,32 @@
       <section class="card editor-card" aria-labelledby="editor-title">
         <h2 id="editor-title">코사인파</h2>
         <form id="wave-form" class="wave-form" novalidate>
-          <label for="frequency">주파수 (Hz)</label>
           <div class="input-row">
-            <input
-              id="frequency"
-              type="text"
-              inputmode="numeric"
-              pattern="[0-9]*"
-              autocomplete="off"
-              enterkeyhint="enter"
-              placeholder="예: 440"
-              aria-describedby="frequency-help frequency-error"
-            />
+            <div class="field">
+              <label for="frequency">주파수 (Hz)</label>
+              <input
+                id="frequency"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
+                enterkeyhint="enter"
+                placeholder="예: 440"
+                aria-describedby="frequency-help frequency-error"
+              />
+            </div>
+            <div class="field amplitude-field">
+              <label for="amplitude">진폭</label>
+              <input
+                id="amplitude"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                enterkeyhint="enter"
+                placeholder="1"
+                aria-describedby="frequency-help frequency-error"
+              />
+            </div>
             <button type="submit" class="button primary">추가</button>
           </div>
           <p id="frequency-help" class="hint"></p>
@@ -67,7 +81,7 @@
           <div id="sample-groups" class="sample-groups" role="group" aria-label="샘플 종류"></div>
           <div id="sample-buttons" class="sample-buttons" role="group" aria-labelledby="samples-title"></div>
           <p id="sample-hint" class="hint" aria-live="polite">
-            누르면 목록이 그 소리의 코사인파 구성으로 바뀝니다. 같은 주파수가 여러 번 들어간 만큼 그 성분이 강합니다.
+            누르면 목록이 그 소리의 코사인파 구성으로 바뀝니다. 코사인파마다 그 성분의 세기를 진폭으로 넣었습니다.
           </p>
         </div>
 
