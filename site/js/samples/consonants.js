@@ -215,3 +215,13 @@ export const CODA_TIMING = {
   ㅂ: { jong: 17, closure: 40 },
   ㅇ: { jong: 21, voiced: 120 },
 };
+
+// 문장 합성용 된소리. 같은 자리 예사소리(base)의 잡음을 쓰고 시간·높이만 바꾼다.
+// 된소리는 VOT가 가장 짧고 뒤 모음이 높다. ㅆ은 ㅅ보다 마찰이 길고 숨소리가 짧으며 잡음이 약 400 Hz 높다(shift).
+export const TENSE_ONSETS = {
+  ㄲ: { base: 'ㄱ', noise: 10, aspiration: 8, pitch: 'high' },
+  ㄸ: { base: 'ㄷ', noise: 10, aspiration: 8, pitch: 'high' },
+  ㅃ: { base: 'ㅂ', noise: 10, aspiration: 8, pitch: 'high' },
+  ㅆ: { base: 'ㅅ', noise: 130, shift: 400, pitch: 'high' },
+  ㅉ: { base: 'ㅈ', noise: 40, aspiration: 5, pitch: 'high' },
+};
