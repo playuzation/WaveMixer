@@ -1,11 +1,12 @@
-// 페이지 진입점. 상태(state)·계산(synth)·샘플(samples)·소리(audio)·화면(view) 모듈을 조립한다.
+// 페이지 진입점. 상태(state)·계산(synth)·샘플(samples)·말하기(speech)·소리(audio)·화면(view) 모듈을 조립한다.
 // 하위 모듈끼리는 서로 import하지 않는다(main → 각 모듈의 트리 구조).
 import { createHistory } from './state/history.js';
 import { addWave, createWaves, removeWave, parseFrequency, MIN_FREQUENCY, MAX_FREQUENCY } from './state/waves.js';
 import { fundamentalOf, mixAt, retune } from './synth/mixer.js';
 import { NOTES } from './synth/notes.js';
 import { renderSegments } from './synth/render.js';
-import { SAMPLE_GROUPS, SYLLABLE_OPTIONS, composeSyllable } from './samples/index.js';
+import { SAMPLE_GROUPS, SYLLABLE_OPTIONS, composeSyllable, composeSentence } from './samples/index.js';
+import { SENTENCES, planSentence } from './speech/index.js';
 import * as player from './audio/player.js';
 import { drawScope } from './view/scope.js';
 import { createWaveList } from './view/waveList.js';
@@ -17,7 +18,7 @@ import { renderTimeline } from './view/timeline.js';
 
 const SHOWN_PERIODS = 2;
 const NOTE_SECONDS = 2;
-const SYLLABLE_SAMPLE_RATE = 44100;
+const SPEECH_SAMPLE_RATE = 44100;
 
 const $ = (id) => document.getElementById(id);
 const form = $('wave-form');
@@ -206,22 +207,23 @@ const PITCH_NOTE = { low: '예사소리 뒤라 낮아짐', high: '거센소리 �
 
 function updateSyllable(play) {
   syllable = composeSyllable(syllableChoice);
-  syllableSound = renderSegments(syllable.segments, syllable.duration, SYLLABLE_SAMPLE_RATE);
+  syllableSound = renderSegments(syllable.segments, syllable.duration, SPEECH_SAMPLE_RATE);
   $('syllable-text').textContent = syllable.text;
   renderTimeline($('syllable-timeline'), syllable.phases, syllable.duration);
   const pitch = PITCH_NOTE[syllable.pitch] ? ` (${PITCH_NOTE[syllable.pitch]})` : '';
   $('syllable-info').textContent = `목소리 높이 ${syllable.f0} Hz${pitch} · 길이 ${Math.round(syllable.duration * 1000)} ms`;
   drawSyllable();
-  if (play) player.playBuffer(syllableSound, SYLLABLE_SAMPLE_RATE);
+  if (play) player.playBuffer(syllableSound, SPEECH_SAMPLE_RATE);
+}
+
+// 미리 계산한 소리(진폭 배열) 전체를 캔버스에 그린다.
+function drawSound(target, sound, duration) {
+  const last = sound.length - 1;
+  drawScope(target, (t) => sound[Math.min(last, Math.round(t * SPEECH_SAMPLE_RATE))], { duration, cycles: sound.length });
 }
 
 function drawSyllable() {
-  if (!syllableSound) return;
-  const last = syllableSound.length - 1;
-  drawScope(syllableCanvas, (t) => syllableSound[Math.min(last, Math.round(t * SYLLABLE_SAMPLE_RATE))], {
-    duration: syllable.duration,
-    cycles: syllableSound.length,
-  });
+  if (syllableSound) drawSound(syllableCanvas, syllableSound, syllable.duration);
 }
 
 for (const key of ['speaker', 'onset', 'vowel', 'coda']) {
@@ -230,7 +232,68 @@ for (const key of ['speaker', 'onset', 'vowel', 'coda']) {
     updateSyllable(true);
   });
 }
-$('syllable-play').addEventListener('click', () => player.playBuffer(syllableSound, SYLLABLE_SAMPLE_RATE));
+$('syllable-play').addEventListener('click', () => player.playBuffer(syllableSound, SPEECH_SAMPLE_RATE));
+
+// ── 문장 말하기 탭 ──
+// 문장을 발음 규칙·억양을 적용한 음절 목록으로 바꾸고(speech), 음절 소리를 이어 합성해(samples) 들려준다.
+const sentenceCanvas = $('sentence-scope');
+const sentenceInput = $('sentence-input');
+const sentenceError = $('sentence-error');
+let sentenceSpeaker = 0;
+let sentence = null;
+let sentenceSound = null;
+
+function showSentenceError(message) {
+  sentenceError.textContent = message;
+  sentenceError.hidden = !message;
+  if (message) sentenceInput.setAttribute('aria-invalid', 'true');
+  else sentenceInput.removeAttribute('aria-invalid');
+}
+
+function speakSentence(text) {
+  const plan = planSentence(text);
+  if (!plan.units.length) {
+    showSentenceError(text.trim() ? '읽을 수 있는 한글이 없습니다. 한글 문장을 입력하세요.' : '문장을 입력하세요.');
+    return;
+  }
+  showSentenceError('');
+  sentence = { text: text.trim(), ...composeSentence(sentenceSpeaker, plan.units) };
+  sentenceSound = renderSegments(sentence.segments, sentence.duration, SPEECH_SAMPLE_RATE);
+
+  $('sentence-text').textContent = sentence.text;
+  $('sentence-pronunciation').textContent =
+    `발음 [${plan.pronunciation}]` + (plan.skipped ? ` · 읽지 않은 글자: ${plan.skipped}` : '');
+  renderTimeline($('sentence-timeline'), sentence.spans, sentence.duration);
+  const [low, high] = sentence.f0Range;
+  $('sentence-info').textContent =
+    `목소리 높이 ${low}~${high} Hz · 길이 ${sentence.duration.toFixed(2)} s · ${sentence.spans.length}음절`;
+  $('sentence-empty').hidden = true;
+  $('sentence-play').disabled = false;
+  drawSentence();
+  player.playBuffer(sentenceSound, SPEECH_SAMPLE_RATE);
+}
+
+function drawSentence() {
+  if (sentenceSound) drawSound(sentenceCanvas, sentenceSound, sentence.duration);
+}
+
+createChoiceRow($('sentence-speaker'), SYLLABLE_OPTIONS.speakers, sentenceSpeaker, (index) => {
+  sentenceSpeaker = index;
+  if (sentence) speakSentence(sentence.text);
+});
+const sentenceSamples = createChoiceRow($('sentence-samples'), SENTENCES, -1, (index) => {
+  sentenceInput.value = SENTENCES[index];
+  speakSentence(SENTENCES[index]);
+});
+sentenceInput.addEventListener('input', () => {
+  showSentenceError('');
+  sentenceSamples.select(SENTENCES.indexOf(sentenceInput.value));
+});
+$('sentence-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  speakSentence(sentenceInput.value);
+});
+$('sentence-play').addEventListener('click', () => player.playBuffer(sentenceSound, SPEECH_SAMPLE_RATE));
 
 // 탭을 바꾸면 재생 중인 소리를 멈춘다.
 createTabs($('tab-wave').parentElement, () => {
@@ -240,9 +303,11 @@ createTabs($('tab-wave').parentElement, () => {
 
 new ResizeObserver(drawWave).observe(canvas);
 new ResizeObserver(drawSyllable).observe(syllableCanvas);
+new ResizeObserver(drawSentence).observe(sentenceCanvas);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   drawWave();
   drawSyllable();
+  drawSentence();
 });
 
 $('frequency-help').textContent = `${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수를 입력하고 Enter 또는 추가를 누르세요.`;
