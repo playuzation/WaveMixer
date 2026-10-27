@@ -1,16 +1,16 @@
 // 샘플 패키지 진입점. 각 데이터 모듈을 화면에 쓰는 공통 형태로 바꿔 그룹별로 내보낸다.
-// 샘플: { name, detail: [버튼 보조 문구 줄], basis: 근거 설명, frequencies: 코사인파 주파수 목록 }
+// 샘플: { name, detail: [버튼 보조 문구 줄], basis: 근거 설명, components: 코사인파 [{ frequency, amplitude }] }
 import { INSTRUMENTS } from './instruments.js';
 import { SPEAKERS, VOWEL_SAMPLES, SYLLABLE_VOWELS, JAMO_VOWELS } from './vowels.js';
 import { ONSETS, CODAS, ONSET_TIMING, CODA_TIMING, TENSE_ONSETS, ONSET_PLACE, PLACE_LOCUS } from './consonants.js';
 import { harmonicSeries, formantSeries, noiseSeries, trackFrames } from './spectrum.js';
 import { layoutPhases, hangulSyllable } from './syllable.js';
 
-const instruments = INSTRUMENTS.map(({ name, pitch, f0, counts, basis }) => ({
+const instruments = INSTRUMENTS.map(({ name, pitch, f0, amplitudes, basis }) => ({
   name,
   detail: [pitch, `${f0} Hz`],
   basis,
-  frequencies: harmonicSeries(f0, counts),
+  components: harmonicSeries(f0, amplitudes),
 }));
 
 // 주어진 포먼트 위에 화자의 높은 공명(upper)을 이어 붙여 높은 배음이 지나치게 약해지지 않게 한다.
@@ -28,7 +28,7 @@ const vowelGroup = (speaker) => ({
       basis:
         (note ? `${note}. ` : '') +
         `성인 ${speaker.label}의 F1 ${formants[0]} Hz, F2 ${formants[1]} Hz 포먼트로 배음 세기를 정했습니다.`,
-      frequencies: formantSeries(speaker.f0, { formants: withUpper(formants, speaker) }),
+      components: formantSeries(speaker.f0, { formants: withUpper(formants, speaker) }),
     };
   }),
 });
@@ -43,11 +43,11 @@ const voicedSpectrum = (f0, spec, speaker) => formantSeries(f0, { ...spec, forma
 // 자음 샘플은 성인 여성 목소리를 기준으로 하고, 숨소리는 뒤 모음 '아'의 포먼트 근처에 둔다.
 const voice = SPEAKERS[0];
 const consonant = ({ name, kind, detail, basis, ...spec }) => {
-  let frequencies;
-  if (kind === 'noise') frequencies = noiseSeries([...spec.bands, ...aspirationBands(voice.formants.a, spec.aspiration ?? 0)]);
-  else if (kind === 'same') frequencies = voicedSpectrum(voice.f0, { formants: voice.formants[spec.vowel] }, voice);
-  else frequencies = voicedSpectrum(voice.f0, spec, voice);
-  return { name, detail, basis, frequencies };
+  let components;
+  if (kind === 'noise') components = noiseSeries([...spec.bands, ...aspirationBands(voice.formants.a, spec.aspiration ?? 0)]);
+  else if (kind === 'same') components = voicedSpectrum(voice.f0, { formants: voice.formants[spec.vowel] }, voice);
+  else components = voicedSpectrum(voice.f0, spec, voice);
+  return { name, detail, basis, components };
 };
 
 export const SAMPLE_GROUPS = [

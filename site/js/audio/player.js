@@ -22,27 +22,29 @@ export function unlock() {
   ensureContext();
 }
 
-// 주어진 주파수들의 cos 합을 같은 위상(동시 시작)으로 재생한다.
+// 주어진 파동들({ frequency, amplitude })의 진폭 × cos 합을 같은 위상(동시 시작)으로 재생한다.
 // 나이퀴스트 주파수 이상은 재생할 수 없으므로 제외한다.
 // duration(초)을 주면 그 길이만큼만 재생하고 스스로 끝난다. 없으면 stop()까지 계속된다.
-export function play(frequencies, duration) {
+export function play(waves, duration) {
   stop();
   const ac = ensureContext();
-  const playable = frequencies.filter((frequency) => frequency < ac.sampleRate / 2);
+  const playable = waves.filter(({ frequency }) => frequency < ac.sampleRate / 2);
   if (!playable.length) return;
 
   const now = ac.currentTime;
-  const level = LEVEL / frequencies.length;
+  const level = LEVEL / waves.reduce((sum, { amplitude }) => sum + amplitude, 0);
   const output = ac.createGain();
   output.gain.setValueAtTime(0, now);
   output.gain.linearRampToValueAtTime(level, now + ATTACK);
   output.connect(ac.destination);
 
-  const oscillators = playable.map((frequency) => {
+  const oscillators = playable.map(({ frequency, amplitude }) => {
     const oscillator = ac.createOscillator();
     oscillator.setPeriodicWave(cosine);
     oscillator.frequency.value = frequency;
-    oscillator.connect(output);
+    const gain = ac.createGain();
+    gain.gain.value = amplitude;
+    oscillator.connect(gain).connect(output);
     oscillator.start(now);
     return oscillator;
   });
