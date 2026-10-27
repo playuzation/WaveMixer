@@ -1,0 +1,386 @@
+:root {
+  color-scheme: light;
+  --bg: #f1f0ec;
+  --surface: #fcfcfb;
+  --surface-2: #f4f3ef;
+  --border: #e2e0da;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --accent: #2a6fc9;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3edf9;
+  --danger: #c43c3b;
+  --scope-line: #2a78d6;
+  --scope-grid: #d4d2cb;
+  --radius: 14px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #111110;
+    --surface: #1a1a19;
+    --surface-2: #222220;
+    --border: #2f2f2c;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --accent-soft: #1d2a3b;
+    --danger: #e66767;
+    --scope-line: #3987e5;
+    --scope-grid: #3a3a37;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+.page-header {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 16px 20px;
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+
+.page-header p {
+  color: var(--text-2);
+}
+
+.layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'scope' 'editor' 'notes';
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+@media (min-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-areas: 'scope editor' 'notes editor';
+    align-items: start;
+  }
+
+  .editor-card {
+    position: sticky;
+    top: 16px;
+  }
+
+  .wave-list {
+    max-height: 420px;
+    overflow-y: auto;
+  }
+}
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.card h2 {
+  font-size: 1.05rem;
+}
+
+.scope-card {
+  grid-area: scope;
+}
+
+.editor-card {
+  grid-area: editor;
+}
+
+.notes-card {
+  grid-area: notes;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hint {
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* 버튼 */
+.button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--scope-line);
+  outline-offset: 2px;
+}
+
+/* 합성 파형 */
+.scope {
+  position: relative;
+  height: clamp(180px, 42vw, 300px);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.scope canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.scope-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: var(--text-2);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.scope-empty[hidden] {
+  display: none;
+}
+
+/* 입력 */
+.wave-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.wave-form label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 1.05rem; /* iOS 입력 시 화면 확대 방지(16px 이상) */
+  font-variant-numeric: tabular-nums;
+}
+
+.input-row input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.input-row .button {
+  min-height: 44px;
+  padding: 0 18px;
+}
+
+/* 파동 목록 */
+.list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.count {
+  font-weight: 600;
+}
+
+.history-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.wave-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wave-list:empty {
+  display: none;
+}
+
+.wave {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.wave-index {
+  color: var(--text-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wave-formula {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wave-hz {
+  color: var(--text-2);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.wave-remove {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.wave-remove:hover {
+  background: var(--accent-soft);
+  color: var(--danger);
+}
+
+.wave-remove svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* 음계 */
+.notes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .notes {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+.note {
+  display: grid;
+  place-content: center;
+  gap: 2px;
+  min-height: 72px;
+  padding: 8px 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.note-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.note-pitch {
+  color: var(--text-2);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.note.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.note.is-active .note-pitch {
+  color: var(--accent-ink);
+}
+
+.note:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="주파수가 다른 코사인파를 더해 파형을 만들고 그 소리를 들어 보는 페이지" />
+    <meta name="theme-color" content="#f1f0ec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111110" media="(prefers-color-scheme: dark)" />
+    <title>WaveMixer</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232a6fc9'/%3E%3Cpath d='M4 16c3-9 5-9 8 0s5 9 8 0 5-9 8 0' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="js/main.js"></script>
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>WaveMixer</h1>
+      <p>주파수가 다른 코사인파를 더해 파형을 만들고, 그 파형의 소리를 들어 보세요.</p>
+    </header>
+
+    <main class="layout">
+      <section class="card scope-card" aria-labelledby="scope-title">
+        <div class="card-head">
+          <h2 id="scope-title">합성 파형</h2>
+          <button id="mix-toggle" type="button" class="button primary" aria-pressed="false" disabled>
+            합성음 재생
+          </button>
+        </div>
+        <div class="scope">
+          <canvas id="scope" role="img" aria-label="추가한 코사인파를 모두 더한 파형"></canvas>
+          <p id="scope-empty" class="scope-empty">파동을 추가하면 합성 파형이 여기에 표시됩니다.</p>
+        </div>
+        <p id="scope-info" class="hint" aria-live="polite"></p>
+      </section>
+
+      <section class="card editor-card" aria-labelledby="editor-title">
+        <h2 id="editor-title">코사인파</h2>
+        <form id="wave-form" class="wave-form" novalidate>
+          <label for="frequency">주파수 (Hz)</label>
+          <div class="input-row">
+            <input
+              id="frequency"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]*"
+              autocomplete="off"
+              enterkeyhint="enter"
+              placeholder="예: 440"
+              aria-describedby="frequency-help frequency-error"
+            />
+            <button type="submit" class="button primary">추가</button>
+          </div>
+          <p id="frequency-help" class="hint"></p>
+          <p id="frequency-error" class="error" role="alert" hidden></p>
+        </form>
+
+        <div class="list-head">
+          <span id="wave-count" class="count">0개의 파동</span>
+          <div class="history-buttons">
+            <button id="undo" type="button" class="button" title="실행 취소 (Ctrl+Z)" disabled>↶ 실행 취소</button>
+            <button id="redo" type="button" class="button" title="다시 실행 (Ctrl+Shift+Z)" disabled>↷ 다시 실행</button>
+          </div>
+        </div>
+        <ol id="wave-list" class="wave-list" aria-label="추가한 파동"></ol>
+        <p id="list-empty" class="hint">아직 추가한 파동이 없습니다.</p>
+      </section>
+
+      <section class="card notes-card" aria-labelledby="notes-title">
+        <h2 id="notes-title">음계로 듣기</h2>
+        <p class="hint">누르고 있는 동안 합성 파형의 한 주기가 해당 음 높이로 반복되어 소리 납니다.</p>
+        <div id="notes" class="notes"></div>
+      </section>
+    </main>
+  </body>
+</html>
