@@ -359,6 +359,7 @@ input:focus-visible {
 .sample-pitch {
   color: var(--text-2);
   font-size: 0.7rem;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
