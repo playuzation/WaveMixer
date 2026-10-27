@@ -67,6 +67,35 @@ p {
   color: var(--text-2);
 }
 
+/* 페이지 탭 */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs [role='tab'] {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabs [role='tab'][aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+[role='tabpanel'][hidden] {
+  display: none;
+}
+
 .layout {
   display: grid;
   gap: 16px;
@@ -309,7 +338,8 @@ input:focus-visible {
   gap: 6px;
 }
 
-.sample-group {
+.sample-group,
+.choice {
   min-height: 32px;
   padding: 0 12px;
   border: 1px solid var(--border);
@@ -322,7 +352,8 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.sample-group[aria-pressed='true'] {
+.sample-group[aria-pressed='true'],
+.choice[aria-pressed='true'] {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-ink);
@@ -360,6 +391,115 @@ input:focus-visible {
   color: var(--text-2);
   font-size: 0.7rem;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 음절 만들기 */
+.syllable-layout {
+  grid-template-areas: none;
+}
+
+@media (min-width: 900px) {
+  .syllable-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-rows: auto;
+    grid-template-areas: none;
+  }
+}
+
+.choice-field {
+  display: grid;
+  gap: 6px;
+}
+
+.choice-field h3 {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.choice-row.jamo .choice {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+}
+
+.syllable-text {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.timeline {
+  display: grid;
+  gap: 8px;
+}
+
+.timeline-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--surface-2);
+}
+
+.timeline-block,
+.timeline-swatch {
+  border-radius: 3px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.timeline-block {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.timeline-block.is-vowel,
+.timeline-swatch.is-vowel {
+  background: var(--accent);
+}
+
+.timeline-block.is-noise,
+.timeline-block.is-aspiration,
+.timeline-swatch.is-noise,
+.timeline-swatch.is-aspiration {
+  background: var(--surface);
+  box-shadow: none;
+  border: 1px dashed var(--text-2);
+}
+
+.timeline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.timeline-list li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+}
+
+.timeline-ms {
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 

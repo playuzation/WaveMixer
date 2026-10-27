@@ -4,15 +4,20 @@ import { createHistory } from './state/history.js';
 import { addWave, createWaves, removeWave, parseFrequency, MIN_FREQUENCY, MAX_FREQUENCY } from './state/waves.js';
 import { fundamentalOf, mixAt, retune } from './synth/mixer.js';
 import { NOTES } from './synth/notes.js';
-import { SAMPLE_GROUPS } from './samples/index.js';
+import { renderSegments } from './synth/render.js';
+import { SAMPLE_GROUPS, SYLLABLE_OPTIONS, composeSyllable } from './samples/index.js';
 import * as player from './audio/player.js';
 import { drawScope } from './view/scope.js';
 import { createWaveList } from './view/waveList.js';
 import { createNotePad } from './view/notePad.js';
 import { createSamplePicker } from './view/samplePicker.js';
+import { createTabs } from './view/tabs.js';
+import { createChoiceRow } from './view/choiceRow.js';
+import { renderTimeline } from './view/timeline.js';
 
 const SHOWN_PERIODS = 2;
 const NOTE_SECONDS = 2;
+const SYLLABLE_SAMPLE_RATE = 44100;
 
 const $ = (id) => document.getElementById(id);
 const form = $('wave-form');
@@ -185,9 +190,62 @@ for (const type of ['pointerup', 'keydown']) {
   document.addEventListener(type, player.unlock, { once: true });
 }
 
+// ── 음절 만들기 탭 ──
+// 고른 목소리·초성·중성·종성으로 음절을 합성하고, 파형·구간을 그린 뒤 들려준다.
+const syllableCanvas = $('syllable-scope');
+const syllableChoice = {
+  speaker: 0,
+  onset: SYLLABLE_OPTIONS.onsets.indexOf('ㅇ'),
+  vowel: 0,
+  coda: 0,
+};
+let syllable = null;
+let syllableSound = null;
+
+const PITCH_NOTE = { low: '예사소리 뒤라 낮아짐', high: '거센소리 뒤라 높아짐' };
+
+function updateSyllable(play) {
+  syllable = composeSyllable(syllableChoice);
+  syllableSound = renderSegments(syllable.segments, syllable.duration, SYLLABLE_SAMPLE_RATE);
+  $('syllable-text').textContent = syllable.text;
+  renderTimeline($('syllable-timeline'), syllable.phases, syllable.duration);
+  const pitch = PITCH_NOTE[syllable.pitch] ? ` (${PITCH_NOTE[syllable.pitch]})` : '';
+  $('syllable-info').textContent = `목소리 높이 ${syllable.f0} Hz${pitch} · 길이 ${Math.round(syllable.duration * 1000)} ms`;
+  drawSyllable();
+  if (play) player.playBuffer(syllableSound, SYLLABLE_SAMPLE_RATE);
+}
+
+function drawSyllable() {
+  if (!syllableSound) return;
+  const last = syllableSound.length - 1;
+  drawScope(syllableCanvas, (t) => syllableSound[Math.min(last, Math.round(t * SYLLABLE_SAMPLE_RATE))], {
+    duration: syllable.duration,
+    cycles: syllableSound.length,
+  });
+}
+
+for (const key of ['speaker', 'onset', 'vowel', 'coda']) {
+  createChoiceRow($(`choice-${key}`), SYLLABLE_OPTIONS[`${key}s`], syllableChoice[key], (index) => {
+    syllableChoice[key] = index;
+    updateSyllable(true);
+  });
+}
+$('syllable-play').addEventListener('click', () => player.playBuffer(syllableSound, SYLLABLE_SAMPLE_RATE));
+
+// 탭을 바꾸면 재생 중인 소리를 멈춘다.
+createTabs($('tab-wave').parentElement, () => {
+  player.stop();
+  setMixPlaying(false);
+});
+
 new ResizeObserver(drawWave).observe(canvas);
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawWave);
+new ResizeObserver(drawSyllable).observe(syllableCanvas);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  drawWave();
+  drawSyllable();
+});
 
 $('frequency-help').textContent = `${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수를 입력하고 Enter 또는 추가를 누르세요.`;
 updateNoteMode();
 render();
+updateSyllable(false);
