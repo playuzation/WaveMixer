@@ -303,6 +303,31 @@ input:focus-visible {
   font-size: 0.875rem;
 }
 
+.sample-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sample-group {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sample-group[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
 .sample-buttons {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -1,10 +1,10 @@
-// 페이지 진입점. 상태(state)·계산(synth)·소리(audio)·화면(view) 모듈을 조립한다.
+// 페이지 진입점. 상태(state)·계산(synth)·샘플(samples)·소리(audio)·화면(view) 모듈을 조립한다.
 // 하위 모듈끼리는 서로 import하지 않는다(main → 각 모듈의 트리 구조).
 import { createHistory } from './state/history.js';
 import { addWave, createWaves, removeWave, parseFrequency, MIN_FREQUENCY, MAX_FREQUENCY } from './state/waves.js';
 import { fundamentalOf, mixAt, retune } from './synth/mixer.js';
 import { NOTES } from './synth/notes.js';
-import { SAMPLES, sampleFrequencies } from './synth/samples.js';
+import { SAMPLE_GROUPS } from './samples/index.js';
 import * as player from './audio/player.js';
 import { drawScope } from './view/scope.js';
 import { createWaveList } from './view/waveList.js';
@@ -41,9 +41,9 @@ const notePad = createNotePad($('notes'), NOTES, {
 });
 
 // 샘플을 고르면 목록 전체를 그 샘플의 코사인파로 바꾼다(실행 취소 한 번으로 되돌릴 수 있음).
-createSamplePicker($('sample-buttons'), SAMPLES, (sample) => {
-  $('sample-hint').textContent = `${sample.name} (${sample.pitch}, ${sample.f0} Hz): ${sample.basis}`;
-  commit(createWaves(sampleFrequencies(sample)));
+createSamplePicker({ tabs: $('sample-groups'), grid: $('sample-buttons') }, SAMPLE_GROUPS, (sample) => {
+  $('sample-hint').textContent = `${sample.name} (${sample.detail.join(', ')}): ${sample.basis}`;
+  commit(createWaves(sample.frequencies));
 });
 
 function commit(waves) {
