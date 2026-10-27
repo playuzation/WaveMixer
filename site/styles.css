@@ -80,6 +80,7 @@ p {
 @media (min-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr; /* 오른쪽 카드가 길어져도 남는 높이는 아래 행이 받는다 */
     grid-template-areas: 'scope editor' 'notes editor';
     align-items: start;
   }
@@ -287,6 +288,53 @@ input:focus-visible {
 .input-row .button {
   min-height: 44px;
   padding: 0 18px;
+}
+
+/* 악기 샘플 */
+.samples {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.samples h3 {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.sample-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.sample {
+  display: grid;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sample:hover {
+  border-color: var(--accent);
+}
+
+.sample-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.sample-pitch {
+  color: var(--text-2);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 파동 목록 */
