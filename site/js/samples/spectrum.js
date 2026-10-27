@@ -6,8 +6,8 @@ export function harmonicSeries(f0, counts) {
   return counts.flatMap((count, index) => Array(count).fill(f0 * (index + 1)));
 }
 
-const MAX_COUNT = 8;
-const RANGE_DB = 42;
+const MAX_COUNT = 6;
+const RANGE_DB = 36;
 const DEFAULT_BANDWIDTHS = [80, 100, 150];
 
 // 2차 공명(포먼트)의 크기. 0 Hz에서 1이 되도록 정규화했다.
@@ -18,7 +18,7 @@ const resonance = (f, center, bandwidth) =>
 // - 음원(성대 −12 dB/oct)과 입술 방사(+6 dB/oct)를 합친 1/n 기울기에
 // - formants(공명)를 곱하고, zeros(코 공명 때문에 생기는 골)로 나눈다.
 // 개수는 정수라 작은 진폭이 사라지므로, 가장 강한 배음 대비 dB를 개수에 비례시킨다
-// (0 dB → 8개, −21 dB → 4개, −42 dB 이하 → 0개). 진폭 차이를 줄이는 대신 포먼트 모양이 남는다.
+// (6 dB마다 1개: 0 dB → 6개, −18 dB → 3개, −36 dB 이하 → 0개). 진폭 차이를 줄이는 대신 포먼트 모양이 남는다.
 export function formantSeries(f0, { formants, bandwidths = DEFAULT_BANDWIDTHS, zeros = [], maxFrequency }) {
   const top = maxFrequency ?? formants[formants.length - 1] + 500;
   const amplitudes = [];
