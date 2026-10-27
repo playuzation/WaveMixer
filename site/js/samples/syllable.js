@@ -1,6 +1,7 @@
 // 음절·문장의 시간 배치. 소리 구간(phase)을 순서대로 이어 붙이고, 이웃 구간과 서서히 바뀌게 한다.
-// 입력 phase: { label, kind, ms, fade?: 앞 구간과 바뀌는 ms, cut?: 끝을 짧게 끊음 } 과 소리 하나:
-// - frequencies + level: 잡음처럼 정지된 코사인파 묶음. 이웃과 겹쳐(crossfade) 바뀐다.
+// 입력 phase: { label, kind, ms, fade?: 앞 구간과 바뀌는 ms, attack?: 앞에 소리가 없을 때 시작 ms,
+//              cut?: 끝을 짧게 끊음 } 과 소리 하나:
+// - noise + level: 걸러진 잡음(공진기 목록). 이웃과 겹쳐(crossfade) 바뀐다.
 // - voice: { f0, formants, bandwidths?, zero?, level } 성대가 울리는 소리. 이웃 voice와는 겹치지 않고
 //   포먼트·높이·세기가 이어서 움직이도록 키프레임(keys)을 만든다. from: { formants, ms }가 있으면
 //   그 포먼트에서 시작해 ms 동안 목표로 옮겨 간다(자음에서 모음으로의 전이).
@@ -22,18 +23,18 @@ export function layoutPhases(phases) {
     return { ...phase, start, end: cursor };
   });
 
-  const sounding = (phase) => Boolean(phase?.frequencies?.length || phase?.voice);
+  const sounding = (phase) => Boolean(phase?.noise || phase?.voice);
   const segments = placed.flatMap((phase, i) => {
-    if (!phase.frequencies?.length) return [];
+    if (!phase.noise) return [];
     const previous = sounding(placed[i - 1]) ? placed[i - 1] : null;
     const next = sounding(placed[i + 1]) ? placed[i + 1] : null;
     const cut = phase.cut || placed[i + 1]?.abrupt;
-    const fadeIn = previous ? sec(phase.fade ?? DEFAULT_FADE_MS) : sec(ATTACK_MS);
+    const fadeIn = previous ? sec(phase.fade ?? DEFAULT_FADE_MS) : sec(phase.attack ?? ATTACK_MS);
     const fadeOut = next ? sec(next.fade ?? DEFAULT_FADE_MS) : sec(cut ? CUT_MS : RELEASE_MS);
     // 경계를 중심으로 앞뒤 구간이 겹치도록 늘린다. 뒤에 소리가 없으면 경계 뒤로 끝맺음만큼 이어진다.
     const start = phase.start - (previous ? fadeIn / 2 : 0);
     const end = phase.end + (next ? fadeOut / 2 : fadeOut);
-    return [{ frequencies: phase.frequencies, level: phase.level, start, duration: end - start, fadeIn, fadeOut }];
+    return [{ noise: phase.noise, level: phase.level, start, duration: end - start, fadeIn, fadeOut }];
   });
 
   // 키프레임은 시간 순서여야 하므로, 구간이 짧아 앞 키보다 이르게 되면 앞 키 시간에 맞춘다.

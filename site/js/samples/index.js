@@ -69,7 +69,12 @@ export const SYLLABLE_OPTIONS = {
 
 const PITCH_FACTOR = { low: 0.89, high: 1.125 }; // 예사소리 뒤 110 Hz : 거센소리 뒤 139 Hz
 const LEVEL = { vowel: 1, voiced: 0.5, noise: 0.6, aspiration: 0.3, closure: 0.7 };
-const ASPIRATION_COUNT = 8;
+// 잡음 구간은 걸러진 잡음(synth/noise.js)으로 낸다. 터짐(파열음·파찰음)은 BURST_ATTACK_MS 만에 터진다.
+// 숨소리는 성문 잡음이 뒤 모음의 성도 공명(F1~F4)을 지나는 소리라 그 포먼트에 공진기를 둔다.
+// 성문이 열려 있어 공명이 넓고 F1이 약하다(대역폭·세기는 추정값).
+const BURST_ATTACK_MS = 1;
+const ASPIRATION_BANDWIDTHS = [300, 200, 250, 300];
+const ASPIRATION_GAINS = [0.4, 1, 0.8, 0.5];
 const CLOSURE_F1_MAX = 600;
 // 구간 길이(ms). 음절 탭은 낱말 하나를 또박또박, 문장은 이어 말하는 빠르기다. coda: 받침 길이 배율
 const SYLLABLE_TIMING = { vowel: { open: 280, closed: 200 }, glide: 30, glideFade: 90, codaFade: 40, coda: 1 };
@@ -98,6 +103,13 @@ function onsetSound(name) {
   const bands = sample.bands.map(([low, high, count]) => [low + shift, high + shift, count]);
   return { sample: { ...sample, name, bands }, timing: tense };
 }
+
+// 잡음 대역 [하한, 상한, 개수] → 공진기. 대역의 세기(파워)가 개수에 비례하도록 gain = √(개수/대역폭)
+const bandResonators = (bands) =>
+  bands.map(([low, high, count]) => ({ center: (low + high) / 2, bandwidth: high - low, gain: Math.sqrt(count / (high - low)) }));
+
+const aspirationResonators = (formants) =>
+  formants.map((center, i) => ({ center, bandwidth: ASPIRATION_BANDWIDTHS[i], gain: ASPIRATION_GAINS[i] }));
 
 // 성대가 울리는 소리 하나(phase의 voice). spec: { formants, bandwidths?, zeros? }
 const voiceOf = (f0, spec, speaker, kind) => ({
@@ -133,16 +145,20 @@ function syllablePhases(speaker, onsetName, vowel, codaName, { f0, f0End, timing
   const firstVowel = speaker.formants[vowel.start ?? vowel.end];
   const lastVowel = speaker.formants[vowel.end];
   const phases = [];
-  const add = (kind, label, ms, frequencies, extra) => phases.push({ kind, label, ms, frequencies, level: LEVEL[kind], ...extra });
+  const add = (kind, label, ms, noise, extra) => phases.push({ kind, label, ms, noise, level: LEVEL[kind], ...extra });
   const addVoice = (kind, label, ms, voice, extra) => phases.push({ kind, label, ms, voice, ...extra });
 
   let aspiration = onsetTiming.aspiration;
   if (medial && LENIS.has(onsetName)) aspiration = 0;
   if (medial && onsetName === 'ㅎ') aspiration = MEDIAL_H_MS;
 
-  if (onsetTiming.noise) add('noise', `${onset.name} ${onset.detail[0]}`, onsetTiming.noise, noiseSeries(onset.bands), { fade: 4 });
+  if (onsetTiming.noise) {
+    const attack = STOPS.has(onsetName) ? { attack: BURST_ATTACK_MS } : {};
+    add('noise', `${onset.name} ${onset.detail[0]}`, onsetTiming.noise, bandResonators(onset.bands), { fade: 4, ...attack });
+  }
   if (aspiration) {
-    add('aspiration', '숨소리', aspiration, noiseSeries(aspirationBands(firstVowel, ASPIRATION_COUNT)), { fade: 4 });
+    const formants = withUpper(firstVowel, speaker).slice(0, FORMANT_COUNT);
+    add('aspiration', '숨소리', aspiration, aspirationResonators(formants), { fade: 4 });
   }
   if (onsetTiming.voiced) addVoice('voiced', `${onset.name} ${onset.detail[0]}`, onsetTiming.voiced, voiceOf(f0, onset, speaker, 'voiced'));
 
@@ -214,13 +230,13 @@ export function composeSentence(speakerIndex, units) {
 
   units.forEach((unit, index) => {
     if (unit.pause) {
-      push(-1, [{ kind: 'pause', label: '쉼', ms: unit.pause, frequencies: [] }]);
+      push(-1, [{ kind: 'pause', label: '쉼', ms: unit.pause }]);
       afterSound = false;
       return;
     }
     if (afterSound && STOPS.has(unit.cho)) {
       const type = TENSE_ONSETS[unit.cho] ? 'tense' : LENIS.has(unit.cho) ? 'lenis' : 'aspirated';
-      push(index, [{ kind: 'pause', label: '막힘', ms: STOP_GAP_MS[type], frequencies: [], abrupt: true }]);
+      push(index, [{ kind: 'pause', label: '막힘', ms: STOP_GAP_MS[type], abrupt: true }]);
     }
     const f0 = Math.round(speaker.f0 * unit.pitch);
     const f0End = unit.pitchEnd && Math.round(speaker.f0 * unit.pitchEnd);
