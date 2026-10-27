@@ -1,4 +1,4 @@
-// Web Audio로 코사인파 묶음을 재생한다. 한 번에 하나의 소리(voice)만 낸다.
+// Web Audio로 코사인파 묶음이나 미리 계산한 소리를 재생한다. 한 번에 하나의 소리(voice)만 낸다.
 const LEVEL = 0.25;
 const ATTACK = 0.01;
 const RELEASE = 0.04;
@@ -47,12 +47,7 @@ export function play(frequencies, duration) {
     return oscillator;
   });
 
-  const current = { output, oscillators };
-  oscillators[0].onended = () => {
-    output.disconnect();
-    if (voice === current) voice = null;
-  };
-  voice = current;
+  track(output, oscillators);
 
   if (duration) {
     const end = now + duration;
@@ -62,14 +57,42 @@ export function play(frequencies, duration) {
   }
 }
 
+// 미리 계산한 소리(진폭 −1~1 배열)를 처음부터 끝까지 한 번 재생한다.
+export function playBuffer(samples, sampleRate) {
+  stop();
+  const ac = ensureContext();
+  const buffer = ac.createBuffer(1, samples.length, sampleRate);
+  buffer.copyToChannel(samples, 0);
+
+  const output = ac.createGain();
+  output.gain.value = LEVEL;
+  output.connect(ac.destination);
+
+  const source = ac.createBufferSource();
+  source.buffer = buffer;
+  source.connect(output);
+  source.start();
+  track(output, [source]);
+}
+
+// 재생 중인 소리를 기억하고, 스스로 끝나면 연결을 정리한다.
+function track(output, sources) {
+  const current = { output, sources };
+  sources[0].onended = () => {
+    output.disconnect();
+    if (voice === current) voice = null;
+  };
+  voice = current;
+}
+
 export function stop() {
   if (!voice) return;
-  const { output, oscillators } = voice;
+  const { output, sources } = voice;
   voice = null;
 
   const now = context.currentTime;
   output.gain.cancelScheduledValues(now);
   output.gain.setValueAtTime(output.gain.value, now);
   output.gain.linearRampToValueAtTime(0, now + RELEASE);
-  oscillators.forEach((oscillator) => oscillator.stop(now + RELEASE));
+  sources.forEach((source) => source.stop(now + RELEASE));
 }
