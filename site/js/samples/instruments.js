@@ -2,7 +2,7 @@
 // - f0: 기본 주파수(Hz, 자연수)
 // - counts: 배음 번호 n(1부터)마다 n·f0 코사인파를 넣을 개수. 개수만큼 그 배음의 진폭이 커진다.
 // 정수배 배음과 정상 상태만 표현하므로 비조화성·감쇠 같은 특징은 담지 못한다.
-export const SAMPLES = [
+export const INSTRUMENTS = [
   {
     name: '피아노',
     pitch: 'C4',
@@ -60,8 +60,3 @@ export const SAMPLES = [
     basis: '막대를 깎아 맞춘 1 : 3 부분음을 넣었습니다(깎지 않은 막대의 비정수 부분음은 표현할 수 없습니다).',
   },
 ];
-
-// 샘플을 코사인파 주파수 목록으로 펼친다. 예: f0 = 100, counts = [2, 1] → [100, 100, 200]
-export function sampleFrequencies({ f0, counts }) {
-  return counts.flatMap((count, index) => Array(count).fill(f0 * (index + 1)));
-}
