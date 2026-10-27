@@ -16,6 +16,11 @@ export function addWave(waves, frequency) {
   return [...waves, { id: nextId++, frequency }];
 }
 
+// 주파수 목록으로 새 파동 목록을 만든다(샘플 불러오기 등 목록 교체용).
+export function createWaves(frequencies) {
+  return frequencies.map((frequency) => ({ id: nextId++, frequency }));
+}
+
 export function removeWave(waves, id) {
   return waves.filter((wave) => wave.id !== id);
 }
