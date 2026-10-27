@@ -4,7 +4,7 @@ import { createHistory } from './state/history.js';
 import { addWave, createWaves, removeWave, parseFrequency, MIN_FREQUENCY, MAX_FREQUENCY } from './state/waves.js';
 import { fundamentalOf, mixAt, retune } from './synth/mixer.js';
 import { NOTES } from './synth/notes.js';
-import { renderSegments } from './synth/render.js';
+import { renderSound } from './synth/render.js';
 import { SAMPLE_GROUPS, SYLLABLE_OPTIONS, composeSyllable, composeSentence } from './samples/index.js';
 import { SENTENCES, planSentence } from './speech/index.js';
 import * as player from './audio/player.js';
@@ -207,7 +207,7 @@ const PITCH_NOTE = { low: '예사소리 뒤라 낮아짐', high: '거센소리 �
 
 function updateSyllable(play) {
   syllable = composeSyllable(syllableChoice);
-  syllableSound = renderSegments(syllable.segments, syllable.duration, SPEECH_SAMPLE_RATE);
+  syllableSound = renderSound(syllable, SPEECH_SAMPLE_RATE);
   $('syllable-text').textContent = syllable.text;
   renderTimeline($('syllable-timeline'), syllable.phases, syllable.duration);
   const pitch = PITCH_NOTE[syllable.pitch] ? ` (${PITCH_NOTE[syllable.pitch]})` : '';
@@ -258,7 +258,7 @@ function speakSentence(text) {
   }
   showSentenceError('');
   sentence = { text: text.trim(), ...composeSentence(sentenceSpeaker, plan.units) };
-  sentenceSound = renderSegments(sentence.segments, sentence.duration, SPEECH_SAMPLE_RATE);
+  sentenceSound = renderSound(sentence, SPEECH_SAMPLE_RATE);
 
   $('sentence-text').textContent = sentence.text;
   $('sentence-pronunciation').textContent =
