@@ -2,8 +2,8 @@
 // 샘플: { name, detail: [버튼 보조 문구 줄], basis: 근거 설명, frequencies: 코사인파 주파수 목록 }
 import { INSTRUMENTS } from './instruments.js';
 import { SPEAKERS, VOWEL_SAMPLES, SYLLABLE_VOWELS, JAMO_VOWELS } from './vowels.js';
-import { ONSETS, CODAS, ONSET_TIMING, CODA_TIMING, TENSE_ONSETS } from './consonants.js';
-import { harmonicSeries, formantSeries, noiseSeries } from './spectrum.js';
+import { ONSETS, CODAS, ONSET_TIMING, CODA_TIMING, TENSE_ONSETS, ONSET_PLACE, PLACE_LOCUS } from './consonants.js';
+import { harmonicSeries, formantSeries, noiseSeries, trackFrames } from './spectrum.js';
 import { layoutPhases, hangulSyllable } from './syllable.js';
 
 const instruments = INSTRUMENTS.map(({ name, pitch, f0, counts, basis }) => ({
@@ -79,6 +79,15 @@ const STOP_GAP_MS = { lenis: 40, aspirated: 70, tense: 90 };
 const LENIS = new Set([...'ㄱㄷㅂㅈ']);
 const STOPS = new Set([...'ㄱㄷㅂㅈㅊㅋㅌㅍㄲㄸㅃㅉ']);
 const MEDIAL_H_MS = 40;
+// 포먼트 이동 합성: 포먼트 4개(F1~F4)를 5 ms마다 보간하고, 자음 뒤 모음은 CV_MS 동안 locus 쪽에서 옮겨 온다.
+// 전이는 F1이 낮은 곳(최대 ONSET_F1)에서, F2(·F3)가 locus 쪽으로 LOCUS_WEIGHT만큼 간 곳에서 시작한다.
+const FORMANT_COUNT = 4;
+const TRACK_HOP = 0.005;
+const CV_MS = 40;
+const NASAL_RELEASE_MS = 10;
+const ONSET_F1 = 300;
+const LOCUS_WEIGHT = 0.5;
+const MAX_FREQUENCY_MARGIN = 800;
 
 // 초성 이름 → { sample, timing }. 된소리는 같은 자리 예사소리 샘플의 잡음 대역을 옮겨 쓴다.
 function onsetSound(name) {
@@ -89,6 +98,30 @@ function onsetSound(name) {
   const bands = sample.bands.map(([low, high, count]) => [low + shift, high + shift, count]);
   return { sample: { ...sample, name, bands }, timing: tense };
 }
+
+// 성대가 울리는 소리 하나(phase의 voice). spec: { formants, bandwidths?, zeros? }
+const voiceOf = (f0, spec, speaker, kind) => ({
+  f0,
+  formants: withUpper(spec.formants, speaker).slice(0, FORMANT_COUNT),
+  bandwidths: spec.bandwidths,
+  zero: spec.zeros ? [spec.zeros[0], 1] : null,
+  level: LEVEL[kind],
+});
+
+// 자음 쪽에서 모음으로 옮겨 오는 전이의 시작 포먼트
+function transitionStart(formants, place) {
+  const locus = PLACE_LOCUS[place];
+  const toward = (value, target) => value + LOCUS_WEIGHT * (target - value);
+  const [f1, f2, f3, ...rest] = formants;
+  return [Math.min(f1, ONSET_F1), toward(f2, locus.f2), locus.f3 ? toward(f3, locus.f3) : f3, ...rest];
+}
+
+// 소리 구간을 시간에 배치하고, 성대가 울리는 구간은 5 ms 프레임으로 바꾼다.
+const arrange = (phases, speaker) => {
+  const layout = layoutPhases(phases);
+  const maxFrequency = speaker.upper[speaker.upper.length - 1] + MAX_FREQUENCY_MARGIN;
+  return { ...layout, track: trackFrames(layout.keys, { hop: TRACK_HOP, maxFrequency }) };
+};
 
 // 한 음절의 소리 구간 목록. vowel: { name, start?, end }(모음 키), codaName: 받침 이름 또는 null
 // - f0End가 있으면 모음 뒤쪽 절반을 그 높이로 옮긴다(문장 끝 억양).
@@ -101,6 +134,7 @@ function syllablePhases(speaker, onsetName, vowel, codaName, { f0, f0End, timing
   const lastVowel = speaker.formants[vowel.end];
   const phases = [];
   const add = (kind, label, ms, frequencies, extra) => phases.push({ kind, label, ms, frequencies, level: LEVEL[kind], ...extra });
+  const addVoice = (kind, label, ms, voice, extra) => phases.push({ kind, label, ms, voice, ...extra });
 
   let aspiration = onsetTiming.aspiration;
   if (medial && LENIS.has(onsetName)) aspiration = 0;
@@ -110,29 +144,38 @@ function syllablePhases(speaker, onsetName, vowel, codaName, { f0, f0End, timing
   if (aspiration) {
     add('aspiration', '숨소리', aspiration, noiseSeries(aspirationBands(firstVowel, ASPIRATION_COUNT)), { fade: 4 });
   }
-  if (onsetTiming.voiced) add('voiced', `${onset.name} ${onset.detail[0]}`, onsetTiming.voiced, voicedSpectrum(f0, onset, speaker));
+  if (onsetTiming.voiced) addVoice('voiced', `${onset.name} ${onset.detail[0]}`, onsetTiming.voiced, voiceOf(f0, onset, speaker, 'voiced'));
 
-  const vowelSpectrum = (formants, pitch = f0) => voicedSpectrum(pitch, { formants }, speaker);
-  if (vowel.start) add('vowel', '활음', timing.glide, vowelSpectrum(firstVowel));
+  // 모음(이중모음은 활음부터)은 자음의 조음 위치 쪽에서 시작해 CV_MS 동안 모음 포먼트로 옮겨 간다.
+  // 비음 뒤에서는 웅얼거림에서 그 시작점으로 짧게(NASAL_RELEASE_MS) 넘어간다.
+  const vowelVoice = (formants, pitch = f0) => voiceOf(pitch, { formants }, speaker, 'vowel');
+  const place = ONSET_PLACE[onsetName];
+  const transition = (formants) => {
+    if (!place) return {};
+    const from = { formants: transitionStart(vowelVoice(formants).formants, place), ms: CV_MS };
+    return onsetTiming.voiced ? { from, fade: NASAL_RELEASE_MS } : { from };
+  };
+  if (vowel.start) addVoice('vowel', '활음', timing.glide, vowelVoice(firstVowel), transition(firstVowel));
   const vowelMs = (coda ? timing.vowel.closed : timing.vowel.open) * length;
-  const glideFade = vowel.start ? { fade: timing.glideFade } : {};
+  const vowelEntry = vowel.start ? { fade: timing.glideFade } : transition(lastVowel);
   if (f0End) {
-    add('vowel', vowel.name, vowelMs / 2, vowelSpectrum(lastVowel), glideFade);
-    add('vowel', vowel.name, vowelMs / 2, vowelSpectrum(lastVowel, f0End), { fade: vowelMs / 2 });
+    addVoice('vowel', vowel.name, vowelMs / 2, vowelVoice(lastVowel), vowelEntry);
+    addVoice('vowel', vowel.name, vowelMs / 2, vowelVoice(lastVowel, f0End), { fade: vowelMs / 2 });
   } else {
-    add('vowel', vowel.name, vowelMs, vowelSpectrum(lastVowel), glideFade);
+    addVoice('vowel', vowel.name, vowelMs, vowelVoice(lastVowel), vowelEntry);
   }
 
   const codaF0 = f0End ?? f0;
   if (codaTiming?.voiced) {
     const label = `받침 ${coda.name} ${coda.detail[0]}`;
-    add('voiced', label, codaTiming.voiced * timing.coda, voicedSpectrum(codaF0, coda, speaker), { fade: timing.codaFade });
+    addVoice('voiced', label, codaTiming.voiced * timing.coda, voiceOf(codaF0, coda, speaker, 'voiced'), { fade: timing.codaFade });
   }
   if (codaTiming?.closure) {
     // 막히는 쪽으로 F2(F3)가 옮겨 가고 F1은 낮아진다. 모음 F1이 이미 낮으면 그대로 둔다.
     const formants = [Math.min(lastVowel[0], CLOSURE_F1_MAX), ...coda.formants.slice(1)];
     const label = `받침 ${coda.name} 막힘`;
-    add('closure', label, codaTiming.closure * timing.coda, vowelSpectrum(formants, codaF0), { fade: timing.codaFade, cut: true });
+    const voice = voiceOf(codaF0, { formants }, speaker, 'closure');
+    addVoice('closure', label, codaTiming.closure * timing.coda, voice, { fade: timing.codaFade, cut: true });
   }
   return phases;
 }
@@ -150,13 +193,13 @@ export function composeSyllable({ speaker: speakerIndex, onset: onsetIndex, vowe
     text: hangulSyllable(onsetTiming.cho, vowel.jung, coda ? CODA_TIMING[coda.name].jong : 0),
     f0,
     pitch: onsetTiming.pitch ?? null,
-    ...layoutPhases(phases),
+    ...arrange(phases, speaker),
   };
 }
 
 // 문장 합성. units: speech 패키지의 음절({ cho, jung, jong, sound, pitch, pitchEnd?, length, phraseInitial })과
 // 쉼({ pause: ms }) 목록. 높이·길이는 목소리 기준값에 곱하는 비율이다.
-// 결과: { duration, segments, spans: 음절별 [{ label, kind, start, end }], f0Range: [최저, 최고] Hz }
+// 결과: { duration, segments, track, spans: 음절별 [{ label, kind, start, end }], f0Range: [최저, 최고] Hz }
 export function composeSentence(speakerIndex, units) {
   const speaker = SPEAKERS[speakerIndex];
   const phases = [];
@@ -188,7 +231,7 @@ export function composeSentence(speakerIndex, units) {
     afterSound = true;
   });
 
-  const { duration, phases: placed, segments } = layoutPhases(phases);
+  const { duration, phases: placed, segments, track } = arrange(phases, speaker);
   const spans = [];
   placed.forEach((phase, i) => {
     const owner = owners[i];
@@ -200,6 +243,7 @@ export function composeSentence(speakerIndex, units) {
   return {
     duration,
     segments,
+    track,
     spans: spans.map(({ label, kind, start, end }) => ({ label, kind, start, end })),
     f0Range: [Math.min(...pitches), Math.max(...pitches)],
   };

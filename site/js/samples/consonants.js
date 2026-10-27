@@ -225,3 +225,19 @@ export const TENSE_ONSETS = {
   ㅆ: { base: 'ㅅ', noise: 130, shift: 400, pitch: 'high' },
   ㅉ: { base: 'ㅈ', noise: 40, aspiration: 5, pitch: 'high' },
 };
+
+// 자음에서 모음으로의 포먼트 전이용 조음 위치와 locus(전이가 향하는 F2·F3, Hz).
+// 받침 ㅂ·ㄷ·ㄱ의 막힘 값과 같은 수치를 쓰고, 치조경구개(ㅈ·ㅊ·ㅉ)는 그보다 앞쪽으로 둔다(추정).
+// ㄹ(탄설음)은 자기 포먼트에서 바로 모음으로 이어지고, ㅎ·ㅇ은 조음 위치가 없어 전이를 두지 않는다.
+export const ONSET_PLACE = {
+  ㄱ: 'velar', ㄲ: 'velar', ㅋ: 'velar',
+  ㄴ: 'alveolar', ㄷ: 'alveolar', ㄸ: 'alveolar', ㅌ: 'alveolar', ㅅ: 'alveolar', ㅆ: 'alveolar',
+  ㅈ: 'palatal', ㅉ: 'palatal', ㅊ: 'palatal',
+  ㅁ: 'labial', ㅂ: 'labial', ㅃ: 'labial', ㅍ: 'labial',
+};
+export const PLACE_LOCUS = {
+  labial: { f2: 1200 },
+  alveolar: { f2: 1800 },
+  palatal: { f2: 2200 },
+  velar: { f2: 2100, f3: 2400 },
+};
