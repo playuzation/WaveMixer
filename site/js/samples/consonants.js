@@ -184,3 +184,34 @@ export const CODAS = [
     basis: '연구개 비음 [ŋ]의 웅얼거림입니다. 조음 위치가 뒤일수록 반포먼트가 높아져 약 3 kHz에 두었습니다.',
   },
 ];
+
+// 음절 합성용 시간 정보(ms)와 한글 조합 번호. 근거·추정 여부는 docs/korean-speech-sounds.md 참고.
+// - noise: 터짐·마찰 잡음 구간, aspiration: 뒤 모음 포먼트 모양의 숨소리 구간, voiced: 유성 구간
+// - pitch: 뒤 모음의 F0를 낮추거나(low: 예사소리) 높인다(high: 거센소리).
+// - closure: 받침 ㄱ·ㄷ·ㅂ이 막히는 구간. 터뜨리지 않고 소리를 끊는다.
+export const ONSET_TIMING = {
+  ㄱ: { cho: 0, noise: 10, aspiration: 44, pitch: 'low' },
+  ㄴ: { cho: 2, voiced: 60 },
+  ㄷ: { cho: 3, noise: 10, aspiration: 44, pitch: 'low' },
+  ㄹ: { cho: 5, voiced: 24 },
+  ㅁ: { cho: 6, voiced: 60 },
+  ㅂ: { cho: 7, noise: 10, aspiration: 44, pitch: 'low' },
+  ㅅ: { cho: 9, noise: 100, aspiration: 30 },
+  ㅇ: { cho: 11 },
+  ㅈ: { cho: 12, noise: 50, aspiration: 15, pitch: 'low' },
+  ㅊ: { cho: 14, noise: 60, aspiration: 50, pitch: 'high' },
+  ㅋ: { cho: 15, noise: 10, aspiration: 60, pitch: 'high' },
+  ㅌ: { cho: 16, noise: 10, aspiration: 60, pitch: 'high' },
+  ㅍ: { cho: 17, noise: 10, aspiration: 60, pitch: 'high' },
+  ㅎ: { cho: 18, aspiration: 90 },
+};
+
+export const CODA_TIMING = {
+  ㄱ: { jong: 1, closure: 40 },
+  ㄴ: { jong: 4, voiced: 120 },
+  ㄷ: { jong: 7, closure: 40 },
+  ㄹ: { jong: 8, voiced: 100 },
+  ㅁ: { jong: 16, voiced: 120 },
+  ㅂ: { jong: 17, closure: 40 },
+  ㅇ: { jong: 21, voiced: 120 },
+};

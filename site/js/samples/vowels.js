@@ -57,3 +57,19 @@ export const VOWEL_SAMPLES = [
   { name: '왜 시작', ipa: 'w', vowel: 'u', note: W_START },
   { name: '왜 끝', ipa: 'e', vowel: 'e', note: "끝은 목표 모음 '애'로, 현대 서울말에서 '에'와 같습니다" },
 ];
+
+// 음절 합성용 모음. jung: 한글 중성 번호, start: 이중모음의 활음 시작 모음, end: 목표 모음
+export const SYLLABLE_VOWELS = [
+  { name: '아', jung: 0, end: 'a' },
+  { name: '야', jung: 2, start: 'i', end: 'a' },
+  { name: '어', jung: 4, end: 'eo' },
+  { name: '여', jung: 6, start: 'i', end: 'eo' },
+  { name: '오', jung: 8, end: 'o' },
+  { name: '요', jung: 12, start: 'i', end: 'o' },
+  { name: '우', jung: 13, end: 'u' },
+  { name: '유', jung: 17, start: 'i', end: 'u' },
+  { name: '으', jung: 18, end: 'eu' },
+  { name: '이', jung: 20, end: 'i' },
+  { name: '에', jung: 5, end: 'e' },
+  { name: '왜', jung: 10, start: 'u', end: 'e' },
+];
