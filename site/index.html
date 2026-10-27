@@ -68,8 +68,14 @@
       </section>
 
       <section class="card notes-card" aria-labelledby="notes-title">
-        <h2 id="notes-title">음계로 듣기</h2>
-        <p class="hint">누르고 있는 동안 합성 파형의 한 주기가 해당 음 높이로 반복되어 소리 납니다.</p>
+        <div class="card-head">
+          <h2 id="notes-title">음계로 듣기</h2>
+          <label class="switch">
+            <input id="note-fixed" type="checkbox" role="switch" />
+            <span>2초 재생</span>
+          </label>
+        </div>
+        <p id="notes-hint" class="hint" aria-live="polite"></p>
         <div id="notes" class="notes"></div>
       </section>
     </main>
