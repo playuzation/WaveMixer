@@ -21,6 +21,7 @@
       <div class="tabs" role="tablist" aria-label="페이지">
         <button id="tab-wave" type="button" role="tab" aria-controls="panel-wave">파형 만들기</button>
         <button id="tab-syllable" type="button" role="tab" aria-controls="panel-syllable">음절 만들기</button>
+        <button id="tab-sentence" type="button" role="tab" aria-controls="panel-sentence">문장 말하기</button>
       </div>
     </header>
 
@@ -130,6 +131,59 @@
         <p class="hint">
           각 구간은 「샘플」 탭의 소리를 그 음절의 목소리 높이로 다시 만든 것이고, 이웃 구간은 겹쳐서 서서히 바뀝니다.
           잡음 구간(점선)은 터짐·마찰·숨소리, 진한 구간은 모음입니다.
+        </p>
+      </section>
+    </div>
+
+    <div id="panel-sentence" class="layout syllable-layout" role="tabpanel" aria-labelledby="tab-sentence" hidden>
+      <section class="card" aria-labelledby="sentence-pick-title">
+        <h2 id="sentence-pick-title">문장 고르기</h2>
+        <div class="choice-field">
+          <h3 id="sentence-speaker-title">목소리</h3>
+          <div id="sentence-speaker" class="choice-row" role="group" aria-labelledby="sentence-speaker-title"></div>
+        </div>
+        <form id="sentence-form" class="wave-form" novalidate>
+          <label for="sentence-input">문장</label>
+          <div class="input-row">
+            <input
+              id="sentence-input"
+              type="text"
+              maxlength="60"
+              autocomplete="off"
+              enterkeyhint="go"
+              placeholder="예: 안녕하세요"
+              aria-describedby="sentence-help sentence-error"
+            />
+            <button type="submit" class="button primary">말하기</button>
+          </div>
+          <p id="sentence-help" class="hint">
+            한글만 읽습니다. 쉼표·마침표에서 쉬고, 물음표로 끝나면 끝을 올려 읽습니다.
+          </p>
+          <p id="sentence-error" class="error" role="alert" hidden></p>
+        </form>
+        <div class="choice-field">
+          <h3 id="sentence-samples-title">샘플 문장</h3>
+          <div id="sentence-samples" class="choice-row" role="group" aria-labelledby="sentence-samples-title"></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="sentence-title">
+        <div class="card-head">
+          <h2 id="sentence-title">문장 소리</h2>
+          <button id="sentence-play" type="button" class="button primary" disabled>다시 듣기</button>
+        </div>
+        <p id="sentence-text" class="sentence-text" aria-live="polite"></p>
+        <p id="sentence-pronunciation" class="hint"></p>
+        <div class="scope">
+          <canvas id="sentence-scope" role="img" aria-label="합성한 문장의 파형"></canvas>
+          <p id="sentence-empty" class="scope-empty">문장을 고르거나 입력하면 합성한 파형이 여기에 표시됩니다.</p>
+        </div>
+        <div id="sentence-timeline" class="timeline"></div>
+        <p id="sentence-info" class="hint"></p>
+        <p class="hint">
+          글자를 표준 발음 규칙(연음, 받침 7대표음, 비음화, 유음화, 된소리되기, 거센소리되기, ㅎ 탈락, 구개음화)으로 바꾼 뒤,
+          음절마다 「음절 만들기」와 같은 방식으로 소리를 만들어 잇습니다. 낱말마다 서울말 억양(낮게-높게 … 낮게-높게)을 주고,
+          문장 끝은 내려 읽습니다.
         </p>
       </section>
     </div>

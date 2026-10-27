@@ -430,6 +430,14 @@ input:focus-visible {
   font-size: 1.05rem;
 }
 
+.sentence-text {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  word-break: keep-all;
+}
+
 .syllable-text {
   font-size: 3.5rem;
   font-weight: 700;
@@ -460,6 +468,11 @@ input:focus-visible {
   position: absolute;
   top: 0;
   bottom: 0;
+}
+
+.timeline-block.is-syllable,
+.timeline-swatch.is-syllable {
+  background: var(--accent-soft);
 }
 
 .timeline-block.is-vowel,

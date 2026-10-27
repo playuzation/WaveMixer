@@ -73,3 +73,29 @@ export const SYLLABLE_VOWELS = [
   { name: '에', jung: 5, end: 'e' },
   { name: '왜', jung: 10, start: 'u', end: 'e' },
 ];
+
+// 문장 합성용: 중성 자모 21개 → 시작(활음)·목표 모음. 에/애, 외/왜/웨는 현대 서울말의 합류를 따르고,
+// 활음은 이중모음 샘플과 같이 [j]는 '이', [w]는 '우'에서 시작한다. 'ㅢ'는 [ɨ]에서 '이'로 움직인다.
+export const JAMO_VOWELS = {
+  ㅏ: { end: 'a' },
+  ㅐ: { end: 'e' },
+  ㅑ: { start: 'i', end: 'a' },
+  ㅒ: { start: 'i', end: 'e' },
+  ㅓ: { end: 'eo' },
+  ㅔ: { end: 'e' },
+  ㅕ: { start: 'i', end: 'eo' },
+  ㅖ: { start: 'i', end: 'e' },
+  ㅗ: { end: 'o' },
+  ㅘ: { start: 'u', end: 'a' },
+  ㅙ: { start: 'u', end: 'e' },
+  ㅚ: { start: 'u', end: 'e' },
+  ㅛ: { start: 'i', end: 'o' },
+  ㅜ: { end: 'u' },
+  ㅝ: { start: 'u', end: 'eo' },
+  ㅞ: { start: 'u', end: 'e' },
+  ㅟ: { start: 'u', end: 'i' },
+  ㅠ: { start: 'i', end: 'u' },
+  ㅡ: { end: 'eu' },
+  ㅢ: { start: 'eu', end: 'i' },
+  ㅣ: { end: 'i' },
+};
