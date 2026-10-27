@@ -24,16 +24,18 @@ export function unlock() {
 
 // 주어진 주파수들의 cos 합을 같은 위상(동시 시작)으로 재생한다.
 // 나이퀴스트 주파수 이상은 재생할 수 없으므로 제외한다.
-export function play(frequencies) {
+// duration(초)을 주면 그 길이만큼만 재생하고 스스로 끝난다. 없으면 stop()까지 계속된다.
+export function play(frequencies, duration) {
   stop();
   const ac = ensureContext();
   const playable = frequencies.filter((frequency) => frequency < ac.sampleRate / 2);
   if (!playable.length) return;
 
   const now = ac.currentTime;
+  const level = LEVEL / frequencies.length;
   const output = ac.createGain();
   output.gain.setValueAtTime(0, now);
-  output.gain.linearRampToValueAtTime(LEVEL / frequencies.length, now + ATTACK);
+  output.gain.linearRampToValueAtTime(level, now + ATTACK);
   output.connect(ac.destination);
 
   const oscillators = playable.map((frequency) => {
@@ -44,7 +46,20 @@ export function play(frequencies) {
     oscillator.start(now);
     return oscillator;
   });
-  voice = { output, oscillators };
+
+  const current = { output, oscillators };
+  oscillators[0].onended = () => {
+    output.disconnect();
+    if (voice === current) voice = null;
+  };
+  voice = current;
+
+  if (duration) {
+    const end = now + duration;
+    output.gain.setValueAtTime(level, end - RELEASE);
+    output.gain.linearRampToValueAtTime(0, end);
+    oscillators.forEach((oscillator) => oscillator.stop(end));
+  }
 }
 
 export function stop() {
@@ -57,5 +72,4 @@ export function stop() {
   output.gain.setValueAtTime(output.gain.value, now);
   output.gain.linearRampToValueAtTime(0, now + RELEASE);
   oscillators.forEach((oscillator) => oscillator.stop(now + RELEASE));
-  oscillators[0].onended = () => output.disconnect();
 }

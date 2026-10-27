@@ -12,6 +12,7 @@
   --danger: #c43c3b;
   --scope-line: #2a78d6;
   --scope-grid: #d4d2cb;
+  --track: #8f8d86;
   --radius: 14px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -29,6 +30,7 @@
     --danger: #e66767;
     --scope-line: #3987e5;
     --scope-grid: #3a3a37;
+    --track: #6b6a64;
   }
 }
 
@@ -167,6 +169,54 @@ button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--scope-line);
   outline-offset: 2px;
+}
+
+/* 토글 스위치 */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.switch input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 24px;
+  margin: 0;
+  border-radius: 12px;
+  background: var(--track);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch input::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  transition: transform 0.15s;
+}
+
+.switch input:checked {
+  background: var(--accent);
+}
+
+.switch input:checked::before {
+  transform: translateX(16px);
 }
 
 /* 합성 파형 */

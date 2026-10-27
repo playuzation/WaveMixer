@@ -10,6 +10,7 @@ import { createWaveList } from './view/waveList.js';
 import { createNotePad } from './view/notePad.js';
 
 const SHOWN_PERIODS = 2;
+const NOTE_SECONDS = 2;
 
 const $ = (id) => document.getElementById(id);
 const form = $('wave-form');
@@ -19,6 +20,7 @@ const undoButton = $('undo');
 const redoButton = $('redo');
 const mixButton = $('mix-toggle');
 const canvas = $('scope');
+const noteFixedToggle = $('note-fixed');
 
 const history = createHistory([]);
 let mixPlaying = false;
@@ -27,9 +29,9 @@ const frequencies = () => history.present.map((wave) => wave.frequency);
 
 const renderList = createWaveList($('wave-list'), (id) => commit(removeWave(history.present, id)));
 const notePad = createNotePad($('notes'), NOTES, {
-  onPress(note) {
+  onPress(note, duration) {
     setMixPlaying(false);
-    player.play(retune(frequencies(), note.frequency));
+    player.play(retune(frequencies(), note.frequency), duration);
   },
   onRelease() {
     player.stop();
@@ -55,6 +57,15 @@ function setMixPlaying(playing) {
   mixPlaying = playing;
   mixButton.setAttribute('aria-pressed', String(playing));
   mixButton.textContent = playing ? '합성음 정지' : '합성음 재생';
+}
+
+// 음계 버튼 재생 방식: 누르는 동안 재생 ↔ 누르는 길이와 무관하게 NOTE_SECONDS초 재생
+function updateNoteMode() {
+  const fixed = noteFixedToggle.checked;
+  notePad.setDuration(fixed ? NOTE_SECONDS : null);
+  $('notes-hint').textContent = fixed
+    ? `길게 누르든 짧게 누르든 합성 파형의 한 주기가 해당 음 높이로 ${NOTE_SECONDS}초 동안 반복되어 소리 납니다.`
+    : '누르고 있는 동안 합성 파형의 한 주기가 해당 음 높이로 반복되어 소리 납니다.';
 }
 
 function formatPeriod(seconds) {
@@ -131,6 +142,7 @@ form.addEventListener('submit', (event) => {
 });
 
 input.addEventListener('input', () => showError(''));
+noteFixedToggle.addEventListener('change', updateNoteMode);
 undoButton.addEventListener('click', undo);
 redoButton.addEventListener('click', redo);
 
@@ -163,4 +175,5 @@ new ResizeObserver(drawWave).observe(canvas);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawWave);
 
 $('frequency-help').textContent = `${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수를 입력하고 Enter 또는 추가를 누르세요.`;
+updateNoteMode();
 render();
