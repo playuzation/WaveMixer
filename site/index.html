@@ -18,9 +18,14 @@
     <header class="page-header">
       <h1>WaveMixer</h1>
       <p>주파수가 다른 코사인파를 더해 파형을 만들고, 그 파형의 소리를 들어 보세요.</p>
+      <div class="tabs" role="tablist" aria-label="페이지">
+        <button id="tab-wave" type="button" role="tab" aria-controls="panel-wave">파형 만들기</button>
+        <button id="tab-syllable" type="button" role="tab" aria-controls="panel-syllable">음절 만들기</button>
+      </div>
     </header>
 
-    <main class="layout">
+    <main>
+    <div id="panel-wave" class="layout" role="tabpanel" aria-labelledby="tab-wave">
       <section class="card scope-card" aria-labelledby="scope-title">
         <div class="card-head">
           <h2 id="scope-title">합성 파형</h2>
@@ -87,6 +92,47 @@
         <p id="notes-hint" class="hint" aria-live="polite"></p>
         <div id="notes" class="notes"></div>
       </section>
+    </div>
+
+    <div id="panel-syllable" class="layout syllable-layout" role="tabpanel" aria-labelledby="tab-syllable" hidden>
+      <section class="card" aria-labelledby="syllable-pick-title">
+        <h2 id="syllable-pick-title">음절 고르기</h2>
+        <p class="hint">고르면 그 음절을 바로 합성해 들려줍니다.</p>
+        <div class="choice-field">
+          <h3 id="choice-speaker-title">목소리</h3>
+          <div id="choice-speaker" class="choice-row" role="group" aria-labelledby="choice-speaker-title"></div>
+        </div>
+        <div class="choice-field">
+          <h3 id="choice-onset-title">초성</h3>
+          <div id="choice-onset" class="choice-row jamo" role="group" aria-labelledby="choice-onset-title"></div>
+        </div>
+        <div class="choice-field">
+          <h3 id="choice-vowel-title">중성</h3>
+          <div id="choice-vowel" class="choice-row jamo" role="group" aria-labelledby="choice-vowel-title"></div>
+        </div>
+        <div class="choice-field">
+          <h3 id="choice-coda-title">종성</h3>
+          <div id="choice-coda" class="choice-row jamo" role="group" aria-labelledby="choice-coda-title"></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="syllable-title">
+        <div class="card-head">
+          <h2 id="syllable-title">음절 소리</h2>
+          <button id="syllable-play" type="button" class="button primary">다시 듣기</button>
+        </div>
+        <p id="syllable-text" class="syllable-text" aria-live="polite"></p>
+        <div class="scope">
+          <canvas id="syllable-scope" role="img" aria-label="합성한 음절의 파형"></canvas>
+        </div>
+        <div id="syllable-timeline" class="timeline"></div>
+        <p id="syllable-info" class="hint"></p>
+        <p class="hint">
+          각 구간은 「샘플」 탭의 소리를 그 음절의 목소리 높이로 다시 만든 것이고, 이웃 구간은 겹쳐서 서서히 바뀝니다.
+          잡음 구간(점선)은 터짐·마찰·숨소리, 진한 구간은 모음입니다.
+        </p>
+      </section>
+    </div>
     </main>
   </body>
 </html>
