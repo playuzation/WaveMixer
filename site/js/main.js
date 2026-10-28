@@ -14,6 +14,7 @@ import {
 } from './state/waves.js';
 import { fundamentalOf, mixAt, retune } from './synth/mixer.js';
 import { NOTES } from './synth/notes.js';
+import { ARTICULATIONS, articulate } from './synth/articulation.js';
 import { renderSound } from './synth/render.js';
 import { SAMPLE_GROUPS, SYLLABLE_OPTIONS, composeSyllable, composeSentence } from './samples/index.js';
 import { SENTENCES, planSentence } from './speech/index.js';
@@ -43,6 +44,7 @@ const noteFixedToggle = $('note-fixed');
 
 const history = createHistory([]);
 let mixPlaying = false;
+let articulation = 0;
 
 const frequencies = () => history.present.map((wave) => wave.frequency);
 
@@ -50,16 +52,33 @@ const renderList = createWaveList($('wave-list'), (id) => commit(removeWave(hist
 const notePad = createNotePad($('notes'), NOTES, {
   onPress(note, duration) {
     setMixPlaying(false);
-    player.play(retune(history.present, note.frequency), duration);
+    const waves = retune(history.present, note.frequency);
+    player.play(articulate(waves, ARTICULATIONS[articulation].name, note.frequency), duration);
   },
   onRelease() {
     player.stop();
   },
 });
 
+// 음계로 들을 때의 울림. 목록(실행 취소 대상)이 아니라 듣는 방식이라 따로 둔다.
+const articulationRow = createChoiceRow(
+  $('articulation'),
+  ARTICULATIONS.map((item) => item.name),
+  articulation,
+  (index) => setArticulation(index),
+);
+
+function setArticulation(index) {
+  articulation = index;
+  articulationRow.select(index);
+  $('articulation-hint').textContent = ARTICULATIONS[index].detail;
+}
+
 // 샘플을 고르면 목록 전체를 그 샘플의 코사인파로 바꾼다(실행 취소 한 번으로 되돌릴 수 있음).
+// 악기 샘플은 그 악기의 울림도 함께 고른다.
 createSamplePicker({ tabs: $('sample-groups'), grid: $('sample-buttons') }, SAMPLE_GROUPS, (sample) => {
   $('sample-hint').textContent = `${sample.name} (${sample.detail.join(', ')}): ${sample.basis}`;
+  if (sample.articulation) setArticulation(ARTICULATIONS.findIndex((item) => item.name === sample.articulation));
   commit(createWaves(sample.components));
 });
 
@@ -336,5 +355,6 @@ $('frequency-help').textContent =
   `주파수는 ${MIN_FREQUENCY} ~ ${MAX_FREQUENCY} 사이의 자연수, 진폭은 ${MIN_AMPLITUDE} ~ ${MAX_AMPLITUDE} 사이의 배율(비우면 1)을 ` +
   '입력하고 Enter 또는 추가를 누르세요.';
 updateNoteMode();
+setArticulation(articulation);
 render();
 updateSyllable(false);
