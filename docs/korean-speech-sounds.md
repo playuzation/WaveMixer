@@ -215,6 +215,10 @@ WaveMixer는 코사인파만 더할 수 있으므로, 각 소리를 **정지된 
 - **소리 계산:**
   - 성대가 울리는 구간은 프레임 사이의 높이와 배음 진폭을 샘플마다 보간하고, 높이를 적분해 위상을 끊김 없이 이어 갑니다.
   - 높이는 느린 사인파 세 개(12.7·7.1·4.7 Hz)로 실효값 0.5 %만큼 흔듭니다(Klatt 합성기의 flutter [59]). 크기는 한국인 남성 jitter 0.47~0.66 %[60]를 빌려 썼습니다 *(추정)*.
+  - 배음의 위상은 Rosenberg 성대 펄스의 미분(열림 33 %, 닫힘 10 %)[61]과 성도 공명·반공명의 위상을 더한 값입니다. 배음 세기는 위 음원-필터 모델 값 그대로입니다.
+  - 성대가 울리는 동안 숨소리를 섞습니다. 백색 잡음을 그 순간의 F1~F4 공명기(대역폭 300·200·250·300 Hz)에 차례로 통과시킵니다[53].
+    - 세기는 목소리 실효값의 0.1(HNR 20 dB, 정상 범위 약 10~26 dB[62] 안의 추정값)입니다.
+    - 성문이 닫힌 동안은 절반으로 줄입니다 *(추정)*.
   - 잡음은 시드를 고정한 의사 난수로 만들어 매번 같은 소리가 납니다.
   - 대역 필터는 RBJ 대역통과 필터[56]를 두 번 거치는 방식입니다(약 −24 dB/oct). 필터가 자리 잡도록 20 ms를 먼저 만들고 버립니다.
   - 공진기 출력을 세기만큼 더한 뒤 실효값을 구간 세기에 맞춥니다.
@@ -391,3 +395,5 @@ WaveMixer는 코사인파만 더할 수 있으므로, 각 소리를 **정지된 
 58. [Pierrehumbert (1983), 성조 목표점과 그 사이의 보간](https://www.phon.ox.ac.uk/jpierrehumbert/publications/Pierrehumbert_1983.pdf)
 59. [Klatt 합성기 구현의 flutter (Surrey)](https://ph-vssp-www.eps.surrey.ac.uk/amma/docs/Auto/Develop/Class/StdSpeechN.KlattSynthC.html)
 60. [한국인 음성 jitter 측정 (koreascience)](https://www.koreascience.or.kr/journal/OMSOBU/v9n2.page?&lang=en)
+61. [Rosenberg 성대 펄스의 열림·닫힘 시간을 주기의 33 %·10 %로 둔 예 (ICASSP 1997)](https://www2.spsc.tugraz.at/people/franklyn/ICASSP97/pdf/author/ic971691.pdf)
+62. [정상 성인의 음성 지표(HNR) 측정 (KUMJ 2009)](https://www.nepjol.info/index.php/KUMJ/article/view/2757)
