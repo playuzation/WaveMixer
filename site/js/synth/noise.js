@@ -37,10 +37,15 @@ function filter(input, { b0, b2, a1, a2 }) {
 // 필터가 자리 잡는 동안 생기는 앞부분 흔들림을 버리기 위해 그만큼 더 만든다.
 const WARMUP_SECONDS = 0.02;
 
+// −1 이상 1 미만의 백색 잡음(분산 1/3)
+export function whiteNoise(length, seed) {
+  const next = random(seed);
+  return Float64Array.from({ length }, () => next() * 2 - 1);
+}
+
 export function filteredNoise(resonators, length, sampleRate, seed) {
   const warmup = Math.round(WARMUP_SECONDS * sampleRate);
-  const next = random(seed);
-  const white = Float64Array.from({ length: warmup + length }, () => next() * 2 - 1);
+  const white = whiteNoise(warmup + length, seed);
 
   const sum = new Float64Array(length);
   for (const { center, bandwidth, gain } of resonators) {
