@@ -56,9 +56,58 @@ export function harmonicAmplitudes(f0, { formants, bandwidths, zero, level }, ma
   return amplitudes.map((amplitude) => (rms ? (amplitude / rms) * level : 0));
 }
 
-// 키프레임 사이를 hop(초)마다 선형 보간해, 프레임마다 높이(f0)와 배음 진폭을 구한다.
+// ── 성대 음원과 성도 공명의 위상 ──
+// 배음 세기는 위 1/n 기울기를 그대로 쓰고, 위상만 Rosenberg 성대 펄스(열림 33 %, 닫힘 10 %)의
+// 미분(입술 방사 포함)과 성도 공명이 주는 값을 따른다. 위상이 모두 0이면 파형이 뾰족한 펄스열이 된다.
+// 위상 0인 시점(θ = 0)은 성문이 열리기 시작하는 때다.
+export const GLOTTAL_PULSE = { open: 0.33, close: 0.1 };
+const PULSE_POINTS = 2048;
+
+// 주기 안 위치 x(0~1)에서 성대 흐름의 기울기
+function glottalSlope(x) {
+  const { open, close } = GLOTTAL_PULSE;
+  if (x < open) return (Math.PI / (2 * open)) * Math.sin((Math.PI * x) / open);
+  if (x < open + close) return -(Math.PI / (2 * close)) * Math.sin((Math.PI * (x - open)) / (2 * close));
+  return 0;
+}
+
+const sourcePhases = [];
+function sourcePhase(n) {
+  if (sourcePhases[n] === undefined) {
+    let re = 0;
+    let im = 0;
+    for (let k = 0; k < PULSE_POINTS; k++) {
+      const x = (k + 0.5) / PULSE_POINTS;
+      const slope = glottalSlope(x);
+      re += slope * Math.cos(2 * Math.PI * n * x);
+      im -= slope * Math.sin(2 * Math.PI * n * x);
+    }
+    sourcePhases[n] = Math.atan2(im, re);
+  }
+  return sourcePhases[n];
+}
+
+// 2차 공명 c²/(c² − f² + j·b·f)의 위상
+const resonancePhase = (f, center, bandwidth) => -Math.atan2(bandwidth * f, center ** 2 - f ** 2);
+
+// harmonicAmplitudes와 같은 배음들의 위상(라디안)
+export function harmonicPhases(f0, { formants, bandwidths, zero }, maxFrequency) {
+  const phases = [];
+  for (let n = 1; n * f0 <= maxFrequency; n++) {
+    const f = n * f0;
+    let phase = sourcePhase(n);
+    formants.forEach((center, i) => {
+      phase += resonancePhase(f, center, bandwidths[i]);
+    });
+    if (zero) phase -= resonancePhase(f, zero[0], DEFAULT_BANDWIDTHS[1]) * zero[1];
+    phases.push(phase);
+  }
+  return phases;
+}
+
+// 키프레임 사이를 hop(초)마다 선형 보간해, 프레임마다 높이(f0)와 배음 진폭·위상, 포먼트를 구한다.
 // key: { time, f0, formants, bandwidths?, zero?, level } — formants 개수는 모든 키에서 같아야 한다.
-// 결과: { start, hop, frames: [{ f0, amplitudes }] } (소리가 없는 프레임은 amplitudes가 빈 배열)
+// 결과: { start, hop, frames: [{ f0, amplitudes, phases, formants }] } (소리가 없는 프레임은 amplitudes가 빈 배열)
 export function trackFrames(keys, { hop, maxFrequency }) {
   const widths = (key) => key.formants.map((_, i) => key.bandwidths?.[i] ?? DEFAULT_BANDWIDTHS[Math.min(i, DEFAULT_BANDWIDTHS.length - 1)]);
   const frames = [];
@@ -75,7 +124,7 @@ export function trackFrames(keys, { hop, maxFrequency }) {
     const level = mix(a.level, b.level);
     const f0 = mix(a.f0, b.f0);
     if (level <= 0) {
-      frames.push({ f0, amplitudes: [] });
+      frames.push({ f0, amplitudes: [], phases: [], formants: a.formants });
       continue;
     }
     const [widthsA, widthsB] = [widths(a), widths(b)];
@@ -86,7 +135,12 @@ export function trackFrames(keys, { hop, maxFrequency }) {
       zero,
       level,
     };
-    frames.push({ f0, amplitudes: harmonicAmplitudes(f0, params, maxFrequency) });
+    frames.push({
+      f0,
+      amplitudes: harmonicAmplitudes(f0, params, maxFrequency),
+      phases: harmonicPhases(f0, params, maxFrequency),
+      formants: params.formants,
+    });
   }
   return { start, hop, frames };
 }
