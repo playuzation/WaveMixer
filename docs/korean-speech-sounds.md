@@ -214,6 +214,7 @@ WaveMixer는 코사인파만 더할 수 있으므로, 각 소리를 **정지된 
   - 「샘플」 탭의 잡음 자음은 진폭 1인 코사인파 묶음 그대로입니다.
 - **소리 계산:**
   - 성대가 울리는 구간은 프레임 사이의 높이와 배음 진폭을 샘플마다 보간하고, 높이를 적분해 위상을 끊김 없이 이어 갑니다.
+  - 높이는 느린 사인파 세 개(12.7·7.1·4.7 Hz)로 실효값 0.5 %만큼 흔듭니다(Klatt 합성기의 flutter [59]). 크기는 한국인 남성 jitter 0.47~0.66 %[60]를 빌려 썼습니다 *(추정)*.
   - 잡음은 시드를 고정한 의사 난수로 만들어 매번 같은 소리가 납니다.
   - 대역 필터는 RBJ 대역통과 필터[56]를 두 번 거치는 방식입니다(약 −24 dB/oct). 필터가 자리 잡도록 20 ms를 먼저 만들고 버립니다.
   - 공진기 출력을 세기만큼 더한 뒤 실효값을 구간 세기에 맞춥니다.
@@ -280,6 +281,7 @@ WaveMixer는 코사인파만 더할 수 있으므로, 각 소리를 **정지된 
   - 물음표: 1.3배로 올림. 예/아니오 질문은 H%(올림)로 끝나는 경우가 가장 흔합니다 [45].
   - 쉼표: 1.15배로 조금 올림.
 - 된소리 뒤 모음은 거센소리처럼 높고, 된소리는 VOT가 가장 짧습니다 [46].
+- 위 높이는 음절 모음 가운데의 목표점입니다. 억양구(쉼 사이) 안에서 목표점 사이를 직선으로 이어 높이가 음절 안에서도 계속 움직입니다 [58]. 문장 끝 경계 성조는 모음 끝에 목표점을 하나 더 둡니다.
 
 ### 길이와 쉼
 
@@ -386,3 +388,6 @@ WaveMixer는 코사인파만 더할 수 있으므로, 각 소리를 **정지된 
 55. [Bonneau – 파열음 터짐 스펙트럼 (ICSLP 1996)](https://www.isca-archive.org/icslp_1996/bonneau96_icslp.pdf)
 56. [W3C – Audio EQ Cookbook (RBJ 필터 계수)](https://www.w3.org/TR/audio-eq-cookbook/)
 57. [MIT 6.542J 실습 자료 – 성문 상태와 포먼트 대역폭](https://ocw.mit.edu/courses/6-542j-laboratory-on-the-physiology-acoustics-and-perception-of-speech-fall-2005/9a410aa5de0a94d085b680f35b0d5954_lab5.pdf)
+58. [Pierrehumbert (1983), 성조 목표점과 그 사이의 보간](https://www.phon.ox.ac.uk/jpierrehumbert/publications/Pierrehumbert_1983.pdf)
+59. [Klatt 합성기 구현의 flutter (Surrey)](https://ph-vssp-www.eps.surrey.ac.uk/amma/docs/Auto/Develop/Class/StdSpeechN.KlattSynthC.html)
+60. [한국인 음성 jitter 측정 (koreascience)](https://www.koreascience.or.kr/journal/OMSOBU/v9n2.page?&lang=en)

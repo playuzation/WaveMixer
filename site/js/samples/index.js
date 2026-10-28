@@ -95,6 +95,8 @@ const NASAL_RELEASE_MS = 10;
 const ONSET_F1 = 300;
 const LOCUS_WEIGHT = 0.5;
 const MAX_FREQUENCY_MARGIN = 800;
+// 목소리 높이의 느린 흔들림(실효값 비율). 한국인 남성 jitter 0.47~0.66 %를 크기로 빌려 썼다(추정).
+const FLUTTER = 0.005;
 
 // 초성 이름 → { sample, timing }. 된소리는 같은 자리 예사소리 샘플의 잡음 대역을 옮겨 쓴다.
 function onsetSound(name) {
@@ -131,11 +133,26 @@ function transitionStart(formants, place) {
 }
 
 // 소리 구간을 시간에 배치하고, 성대가 울리는 구간은 5 ms 프레임으로 바꾼다.
-const arrange = (phases, speaker) => {
+// anchorsOf(배치된 구간)가 있으면 키프레임의 높이를 그 억양 목표점 사이의 직선 위로 옮긴다.
+const arrange = (phases, speaker, anchorsOf) => {
   const layout = layoutPhases(phases);
+  const keys = anchorsOf ? glidePitch(layout.keys, anchorsOf(layout.phases)) : layout.keys;
   const maxFrequency = speaker.upper[speaker.upper.length - 1] + MAX_FREQUENCY_MARGIN;
-  return { ...layout, track: trackFrames(layout.keys, { hop: TRACK_HOP, maxFrequency }) };
+  return { ...layout, track: { ...trackFrames(keys, { hop: TRACK_HOP, maxFrequency }), flutter: FLUTTER } };
 };
+
+// points: 시간순 [{ time, f0 }]. 처음 앞·끝 뒤는 그 값을 그대로 쓴다.
+function interpolatePitch(points, time) {
+  const k = points.findIndex((point) => point.time >= time);
+  if (k === 0) return points[0].f0;
+  if (k < 0) return points[points.length - 1].f0;
+  const [a, b] = [points[k - 1], points[k]];
+  return b.time > a.time ? a.f0 + ((b.f0 - a.f0) * (time - a.time)) / (b.time - a.time) : b.f0;
+}
+
+// groups: 억양구마다 목표점 목록, bounds: 억양구 사이 경계 시각(쉼의 가운데)
+const glidePitch = (keys, { groups, bounds }) =>
+  keys.map((key) => ({ ...key, f0: interpolatePitch(groups[bounds.filter((time) => time < key.time).length], key.time) }));
 
 // 한 음절의 소리 구간 목록. vowel: { name, start?, end }(모음 키), codaName: 받침 이름 또는 null
 // - f0End가 있으면 모음 뒤쪽 절반을 그 높이로 옮긴다(문장 끝 억양).
@@ -228,6 +245,7 @@ export function composeSentence(speakerIndex, units) {
       owners.push(owner);
     });
   const pitches = [];
+  const targets = [];
   let afterSound = false;
 
   units.forEach((unit, index) => {
@@ -243,13 +261,34 @@ export function composeSentence(speakerIndex, units) {
     const f0 = Math.round(speaker.f0 * unit.pitch);
     const f0End = unit.pitchEnd && Math.round(speaker.f0 * unit.pitchEnd);
     pitches.push(f0, f0End || f0);
+    targets[index] = { f0, f0End };
     const vowel = { name: unit.sound, ...JAMO_VOWELS[unit.jung] };
     const options = { f0, f0End, timing: SENTENCE_TIMING, length: unit.length, medial: !unit.phraseInitial };
     push(index, syllablePhases(speaker, unit.cho, vowel, unit.jong || null, options));
     afterSound = true;
   });
 
-  const { duration, phases: placed, segments, track } = arrange(phases, speaker);
+  // 억양: 음절마다 높이를 고정하지 않고, 억양구(쉼 사이) 안에서 음절의 높이 목표점을 직선으로 잇는다.
+  // 목표점은 모음 가운데이고, 끝 경계 성조가 있는 음절은 모음 끝에 그 높이를 하나 더 둔다.
+  const anchorsOf = (placed) => {
+    const groups = [[]];
+    const bounds = [];
+    placed.forEach((phase, i) => {
+      const owner = owners[i];
+      if (owner < 0) {
+        bounds.push((phase.start + phase.end) / 2);
+        groups.push([]);
+        return;
+      }
+      if (phase.kind !== 'vowel' || phase.label === '활음') return;
+      const group = groups[groups.length - 1];
+      const { f0, f0End } = targets[owner];
+      if (f0End && group[group.length - 1]?.owner === owner) group.push({ owner, time: phase.end, f0: f0End });
+      else group.push({ owner, time: (phase.start + phase.end) / 2, f0 });
+    });
+    return { groups, bounds };
+  };
+  const { duration, phases: placed, segments, track } = arrange(phases, speaker, anchorsOf);
   const spans = [];
   placed.forEach((phase, i) => {
     const owner = owners[i];
