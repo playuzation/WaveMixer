@@ -4,7 +4,7 @@
 import { INSTRUMENTS } from './instruments.js';
 import { SPEAKERS, VOWEL_SAMPLES, SYLLABLE_VOWELS, JAMO_VOWELS } from './vowels.js';
 import { ONSETS, CODAS, ONSET_TIMING, CODA_TIMING, TENSE_ONSETS, ONSET_PLACE, PLACE_LOCUS } from './consonants.js';
-import { harmonicSeries, formantSeries, noiseSeries, trackFrames } from './spectrum.js';
+import { harmonicSeries, formantSeries, noiseSeries, trackFrames, GLOTTAL_PULSE } from './spectrum.js';
 import { layoutPhases, hangulSyllable } from './syllable.js';
 
 const instruments = INSTRUMENTS.map(({ name, pitch, f0, amplitudes, articulation, basis }) => ({
@@ -97,6 +97,9 @@ const LOCUS_WEIGHT = 0.5;
 const MAX_FREQUENCY_MARGIN = 800;
 // 목소리 높이의 느린 흔들림(실효값 비율). 한국인 남성 jitter 0.47~0.66 %를 크기로 빌려 썼다(추정).
 const FLUTTER = 0.005;
+// 성대가 울리는 동안 섞는 숨소리: 목소리 대비 실효값 0.1(HNR 20 dB, 정상 목소리 측정 범위 약 10~26 dB 안의 추정값).
+// 숨소리 구간과 같은 넓은 대역폭의 성도 공명을 지나고, 성대 펄스가 열린 동안(열림+닫힘) 크다.
+const BREATH = { ratio: 0.1, bandwidths: ASPIRATION_BANDWIDTHS, open: GLOTTAL_PULSE.open + GLOTTAL_PULSE.close };
 
 // 초성 이름 → { sample, timing }. 된소리는 같은 자리 예사소리 샘플의 잡음 대역을 옮겨 쓴다.
 function onsetSound(name) {
@@ -138,7 +141,7 @@ const arrange = (phases, speaker, anchorsOf) => {
   const layout = layoutPhases(phases);
   const keys = anchorsOf ? glidePitch(layout.keys, anchorsOf(layout.phases)) : layout.keys;
   const maxFrequency = speaker.upper[speaker.upper.length - 1] + MAX_FREQUENCY_MARGIN;
-  return { ...layout, track: { ...trackFrames(keys, { hop: TRACK_HOP, maxFrequency }), flutter: FLUTTER } };
+  return { ...layout, track: { ...trackFrames(keys, { hop: TRACK_HOP, maxFrequency }), flutter: FLUTTER, breath: BREATH } };
 };
 
 // points: 시간순 [{ time, f0 }]. 처음 앞·끝 뒤는 그 값을 그대로 쓴다.
