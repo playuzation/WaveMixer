@@ -5,6 +5,8 @@
 //   반환 { attack, stages: [{ share: 세기 몫, rate: 줄어드는 빠르기 dB/s(없으면 유지) }] }
 // '지속'은 envelope 없이 지금처럼 모든 배음이 함께 울린다. 값은 docs에 근거와 추정 여부를 적었다.
 // vibrato { rate: Hz, depth: 센트 }가 있는 울림은 모든 배음의 높이를 함께 흔든다(audio/player).
+// strings { inharmonicity: B, detune: [센트] }가 있는 울림은 피아노 현처럼 n번째 부분음을 n·f·√(1 + B·n²)로
+// 조금씩 높이고, 한 음을 detune만큼 어긋난 줄 여러 개(세기는 나눠 가짐)로 낸다.
 
 const DB_PER_NEPER = 20 / Math.LN10;
 
@@ -34,7 +36,11 @@ export const ARTICULATIONS = [
   },
   {
     name: '타격',
-    detail: '피아노처럼 바로 울린 뒤 빨리 줄다가, 남은 소리가 4배 느리게 줄어듭니다. 높은 배음일수록 빨리 사라집니다.',
+    detail:
+      '피아노처럼 바로 울린 뒤 빨리 줄다가, 남은 소리가 4배 느리게 줄어듭니다. 높은 배음일수록 빨리 사라지고 ' +
+      '조금씩 높으며(비조화성), 줄 세 개가 1센트씩 어긋나 있습니다.',
+    // 중음역 비조화성 계수 약 10⁻⁴. 줄은 −1·0·+1센트(추정, C4에서 바깥 두 줄 차이 약 0.3 Hz)
+    strings: { inharmonicity: 1e-4, detune: [-1, 0, 1] },
     shape: (n) => ({
       attack: 0.005,
       stages: [
@@ -64,19 +70,25 @@ export const ARTICULATIONS = [
 
 // fundamental: 배음 번호를 셀 기본 주파수(Hz). 음계로 옮긴 파동이면 그 음의 주파수다.
 export function articulate(waves, name, fundamental) {
-  const shape = ARTICULATIONS.find((articulation) => articulation.name === name)?.shape;
+  const { shape, strings } = ARTICULATIONS.find((articulation) => articulation.name === name) ?? {};
   if (!shape) return waves;
-  return waves.map((wave) => {
-    const { attack, stages } = shape(wave.frequency / fundamental, wave.frequency);
-    return {
+  const detunes = strings?.detune ?? [0];
+  return waves.flatMap((wave) => {
+    const n = wave.frequency / fundamental;
+    const { attack, stages } = shape(n, wave.frequency);
+    const stretch = strings ? Math.sqrt(1 + strings.inharmonicity * n ** 2) : 1;
+    const amplitude = wave.amplitude / detunes.length;
+    return detunes.map((cents) => ({
       ...wave,
+      frequency: wave.frequency * stretch * 2 ** (cents / 1200),
+      amplitude,
       envelope: {
         attack,
         stages: stages.map(({ share, rate }) => ({
-          level: wave.amplitude * share,
+          level: amplitude * share,
           timeConstant: rate ? DB_PER_NEPER / rate : null,
         })),
       },
-    };
+    }));
   });
 }
