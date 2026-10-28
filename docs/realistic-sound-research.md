@@ -206,7 +206,7 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
 
 ## WaveMixer에 적용한다면
 
-효과가 클 것으로 보이는 순서입니다 *(추론)*. 1~6번은 적용했고, 나머지는 아직 구현하지 않은 제안입니다.
+효과가 클 것으로 보이는 순서입니다 *(추론)*. 1~7번을 모두 적용했습니다.
 
 - **1번 적용 내용:**
   - 「음절 만들기」·「문장 말하기」의 모음·활음·비음·ㄹ·받침을 포먼트 F1~F4·높이·세기의 키프레임으로 바꿔 5 ms마다 이어서 움직이게 했습니다.
@@ -272,6 +272,19 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
     - 성문이 닫힌 동안(펄스의 열림+닫힘 43 % 밖)은 절반으로 줄입니다 *(추정)*.
     - 모음 '아'로 잰 HNR은 여성 19.6 dB, 남성 19.7 dB였습니다.
   - 음절·문장 렌더 시간이 늘었습니다. 중앙값 기준으로 음절은 약 10 → 25 ms, 문장은 약 23 → 72 ms입니다.
+- **7번 적용 내용:**
+  - 머리글에 **잔향** 스위치를 두었습니다(기본 켬). 「음계로 듣기」·「음절 만들기」·「문장 말하기」 재생에만 걸고, 「합성음 재생」은 순수한 코사인 합으로 둡니다.
+  - 잔향은 Web Audio의 합성곱(ConvolverNode)으로 겁니다. 임펄스 응답은 지수로 줄어드는 잡음이고, 좌우를 따로 만들었습니다. 줄어드는 잡음은 고유 주파수가 없고 반사 밀도가 높아 잔향 꼬리에 가깝다고 설명됩니다 [85].
+
+    | 값 | 설정 | 근거 |
+    | --- | --- | --- |
+    | 잔향 시간(RT60) | 0.5초 | 교실 기준(ANSI S12.60)이 작은 교실에서 0.6초 이하. 잔향이 길면 말소리가 뭉개짐 [86] |
+    | 앞 지연 | 10 ms | *(추정)* |
+    | 직접음 대비 잔향 | −10 dB(D/R +10 dB) | 관련 연구가 다루는 D/R 0~20 dB 범위 안에서 또렷함 쪽 [87] *(추정)* |
+
+  - 임펄스 응답의 에너지를 1로 맞춰 잔향 세기가 위 비율로만 정해지게 했습니다.
+  - 브라우저에서 잰 결과, 음이 끝나고 150 ms 뒤 실효값이 잔향을 켜면 0.0023, 끄면 0이었습니다(재생 중 0.14).
+  - 위 8번 요인처럼 "잔향이 없으면 인공적으로 들린다"를 직접 보인 연구는 찾지 못했으므로, 스위치로 끌 수 있게 두었습니다.
 
 | 순서 | 할 일 | 기대 효과 | 바뀔 곳 |
 | --- | --- | --- | --- |
@@ -281,7 +294,7 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
 | 4 (적용) | **악기 시간 변화**: 배음마다 어택 시점과 감쇠율을 다르게(높은 배음은 늦게 생기고 빨리 줄어듦), 피아노·기타·실로폰은 감쇠 | 가상악기 느낌 감소 | `synth/articulation.js`(새 모듈), `audio/player.js`, `samples/instruments.js` |
 | 5 (적용) | **흔들림**: 높이 떨림 약 0.5~1 %, 비브라토 5~7 Hz·수십 센트, 연속 억양 곡선 | 기계음 느낌 감소 | `synth/render.js`, `samples` 합성, `synth/articulation.js`, `audio/player.js` |
 | 6 (적용) | 피아노 **비조화성**과 미세하게 어긋난 줄(몇 센트), 성대 음원 모양·숨소리 섞기 | 악기·목소리 질감 | `synth/articulation.js`, `synth/render.js`, `synth/noise.js`, `samples/spectrum.js`, `samples` 합성 |
-| 7 | **잔향**: Web Audio ConvolverNode에 짧은 잔향을 걸기 | 메마른 느낌 감소 | `audio/player.js` |
+| 7 (적용) | **잔향**: Web Audio ConvolverNode에 짧은 잔향을 걸기 | 메마른 느낌 감소 | `audio/player.js`, 머리글 스위치(`index.html`·`main.js`) |
 
 고려할 점:
 
@@ -384,3 +397,6 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
 82. [Weinreich – 조금 어긋난 피아노 줄과 맥놀이 (KTH)](https://www.speech.kth.se/music/5_lectures/weinreic/mistuned.html)
 83. [Rosenberg 성대 펄스의 열림·닫힘 시간을 주기의 33 %·10 %로 둔 예 (ICASSP 1997)](https://www2.spsc.tugraz.at/people/franklyn/ICASSP97/pdf/author/ic971691.pdf)
 84. [정상 성인의 음성 지표(HNR) 측정 (KUMJ 2009)](https://www.nepjol.info/index.php/KUMJ/article/view/2757)
+85. [US Patent 7860256 – 줄어드는 잡음으로 만드는 인공 잔향](https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7860256)
+86. [Armstrong – 교실 음향 ANSI S12.60 (잔향 시간 0.6초)](https://www.armstrong.com/en-us/articles/classroom-acoustics-ansi-standard.html)
+87. [Griesinger – 직접음 대 잔향 비와 거리·위치 지각 (IOA)](https://www.ioa.org.uk/system/files/proceedings/d_griesinger_the_importance_of_the_direct_to_reverberant_ratio_in_the_perception_of_distance_localisa.pdf)
