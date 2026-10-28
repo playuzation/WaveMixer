@@ -206,7 +206,7 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
 
 ## WaveMixer에 적용한다면
 
-효과가 클 것으로 보이는 순서입니다 *(추론)*. 1~5번은 적용했고, 나머지는 아직 구현하지 않은 제안입니다.
+효과가 클 것으로 보이는 순서입니다 *(추론)*. 1~6번은 적용했고, 나머지는 아직 구현하지 않은 제안입니다.
 
 - **1번 적용 내용:**
   - 「음절 만들기」·「문장 말하기」의 모음·활음·비음·ㄹ·받침을 포먼트 F1~F4·높이·세기의 키프레임으로 바꿔 5 ms마다 이어서 움직이게 했습니다.
@@ -255,6 +255,23 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
     - 배음이 함께 흔들려야 한 소리로 들리므로[28] 하나의 흔들림으로 모든 오실레이터의 `detune`을 움직입니다.
     - 브라우저에서 단일 파동으로 재 보니 약 ±28센트였습니다(분석 창 평균으로 작게 잡힘).
   - 세기 떨림(shimmer)과, 「활」 밖의 울림·합성음 재생의 흔들림은 넣지 않았습니다.
+- **6번 적용 내용:**
+  - **피아노 비조화성과 어긋난 줄** (「음계로 듣기」의 「타격」)
+    - n번째 부분음을 n·f·√(1 + B·n²)로 조금씩 높입니다. B는 중음역 값 10⁻⁴를 썼습니다(위 [1]은 [instrument-harmonics.md](instrument-harmonics.md)의 출처). C4에서 10배음이 +8.6센트입니다.
+    - 한 음을 −1·0·+1센트 어긋난 줄 세 개로 냅니다 *(추정)*. C4에서 바깥 두 줄 차이는 약 0.3 Hz입니다. Weinreich는 이보다 작으면 맥놀이 없이 '맥놀이 영점' 하나만 생긴다고 했습니다 [82].
+    - 줄이 서로 조금씩 상쇄되어, 브라우저에서 잰 1.5초 값 ÷ 60 ms 값이 0.34에서 0.15로 더 줄었습니다.
+    - 줄 사이의 결합(두 단계 감쇠를 만드는 원인)은 계산하지 않고, 4번의 두 단계 감쇠를 그대로 씁니다.
+  - **성대 음원 모양** (「음절 만들기」·「문장 말하기」)
+    - 배음 세기(1/n × 포먼트)는 그대로 둡니다. 위상만 Rosenberg 성대 펄스의 미분(열림 33 %, 닫힘 10 %) [83]과 성도 공명·반공명의 위상을 따릅니다.
+    - 지금까지는 위상이 모두 0이어서 뾰족한 펄스열 모양이었습니다 [60]. 바꾼 뒤 모음 '아'의 파고율(최대 ÷ 실효값)이 여성 3.78 → 2.16, 남성 4.75 → 2.54로 낮아졌습니다.
+    - 최대 진폭을 1로 맞추므로 같은 재생 세기에서 말소리가 전보다 커집니다.
+    - LF 모델[59] 대신 매개변수가 적은 Rosenberg 모델을 썼고, 세기 기울기는 바꾸지 않았습니다.
+  - **숨소리 섞기** (「음절 만들기」·「문장 말하기」)
+    - 성대가 울리는 동안 백색 잡음을 그 순간의 포먼트(F1~F4) 공명기에 통과시켜 섞습니다[61]. 대역폭은 숨소리 구간과 같은 300·200·250·300 Hz입니다.
+    - 세기는 목소리 실효값의 0.1(HNR 20 dB)입니다 *(추정)*. 정상 목소리의 HNR은 측정 방법에 따라 약 10~26 dB로 보고됩니다 [84].
+    - 성문이 닫힌 동안(펄스의 열림+닫힘 43 % 밖)은 절반으로 줄입니다 *(추정)*.
+    - 모음 '아'로 잰 HNR은 여성 19.6 dB, 남성 19.7 dB였습니다.
+  - 음절·문장 렌더 시간이 늘었습니다. 중앙값 기준으로 음절은 약 10 → 25 ms, 문장은 약 23 → 72 ms입니다.
 
 | 순서 | 할 일 | 기대 효과 | 바뀔 곳 |
 | --- | --- | --- | --- |
@@ -263,7 +280,7 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
 | 3 (적용) | **진폭 값** 도입: 같은 주파수 반복 대신 파동마다 진폭을 둠 | 윙윙거림 감소, 스펙트럼 정확도 | `state/waves`, `synth/mixer`, `audio`, `view/waveList`, 샘플 데이터 |
 | 4 (적용) | **악기 시간 변화**: 배음마다 어택 시점과 감쇠율을 다르게(높은 배음은 늦게 생기고 빨리 줄어듦), 피아노·기타·실로폰은 감쇠 | 가상악기 느낌 감소 | `synth/articulation.js`(새 모듈), `audio/player.js`, `samples/instruments.js` |
 | 5 (적용) | **흔들림**: 높이 떨림 약 0.5~1 %, 비브라토 5~7 Hz·수십 센트, 연속 억양 곡선 | 기계음 느낌 감소 | `synth/render.js`, `samples` 합성, `synth/articulation.js`, `audio/player.js` |
-| 6 | 피아노 **비조화성**과 미세하게 어긋난 줄(몇 센트), 성대 음원 모양·숨소리 섞기 | 악기·목소리 질감 | `samples`, `synth` |
+| 6 (적용) | 피아노 **비조화성**과 미세하게 어긋난 줄(몇 센트), 성대 음원 모양·숨소리 섞기 | 악기·목소리 질감 | `synth/articulation.js`, `synth/render.js`, `synth/noise.js`, `samples/spectrum.js`, `samples` 합성 |
 | 7 | **잔향**: Web Audio ConvolverNode에 짧은 잔향을 걸기 | 메마른 느낌 감소 | `audio/player.js` |
 
 고려할 점:
@@ -364,3 +381,6 @@ McAulay–Quatieri 모델처럼 **사인파 수가 같아도 짧은 구간마다
 79. [Grinnell College Musical Instrument Collection – Xylophone](https://omeka-s.grinnell.edu/s/MusicalInstruments/item/972)
 80. [US Patent 4411187 – Composite marimba bars (실로폰 감쇠 시간)](https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/4411187)
 81. [Pierrehumbert (1983), 성조 목표점과 그 사이의 보간](https://www.phon.ox.ac.uk/jpierrehumbert/publications/Pierrehumbert_1983.pdf)
+82. [Weinreich – 조금 어긋난 피아노 줄과 맥놀이 (KTH)](https://www.speech.kth.se/music/5_lectures/weinreic/mistuned.html)
+83. [Rosenberg 성대 펄스의 열림·닫힘 시간을 주기의 33 %·10 %로 둔 예 (ICASSP 1997)](https://www2.spsc.tugraz.at/people/franklyn/ICASSP97/pdf/author/ic971691.pdf)
+84. [정상 성인의 음성 지표(HNR) 측정 (KUMJ 2009)](https://www.nepjol.info/index.php/KUMJ/article/view/2757)
