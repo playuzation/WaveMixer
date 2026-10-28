@@ -3,12 +3,14 @@
 // - segments: 잡음 구간 { noise: 공진기 목록, level, start, duration, fadeIn, fadeOut }.
 //   걸러진 잡음(synth/noise.js)의 실효값(RMS)을 level에 맞추고,
 //   시작·끝은 fadeIn·fadeOut 동안 선형으로 키우고 줄인다.
-// - track: 성대가 울리는 소리 { start, hop, frames: [{ f0, amplitudes }] }. 프레임(hop초 간격) 사이의
+// - track: 성대가 울리는 소리 { start, hop, frames: [{ f0, amplitudes }], flutter? }. 프레임(hop초 간격) 사이의
 //   높이와 배음 진폭을 샘플마다 선형 보간하고, 위상은 높이를 적분해 끊김 없이 이어 간다.
+//   flutter(비율)가 있으면 Klatt 합성기처럼 느린 사인파 세 개로 높이를 그 실효값만큼 흔든다.
 import { filteredNoise } from './noise.js';
 
 const ramp = (x, width) => (width > 0 ? Math.min(1, Math.max(0, x / width)) : 1);
 const TWO_PI = 2 * Math.PI;
+const FLUTTER_HZ = [12.7, 7.1, 4.7];
 
 function addSegments(out, segments, sampleRate) {
   segments.forEach(({ noise, level, start, duration: length, fadeIn, fadeOut }, index) => {
@@ -23,18 +25,22 @@ function addSegments(out, segments, sampleRate) {
   });
 }
 
-function addTrack(out, { start, hop, frames }, sampleRate) {
+function addTrack(out, { start, hop, frames, flutter = 0 }, sampleRate) {
   if (frames.length < 2) return;
   const from = Math.max(0, Math.ceil(start * sampleRate));
   const to = Math.min(out.length, Math.floor((start + hop * (frames.length - 1)) * sampleRate));
+  // 진폭이 같은 사인파 세 개 합의 실효값은 진폭의 √(3/2)배다.
+  const wobble = flutter / Math.sqrt(1.5);
   let phase = 0;
   for (let i = from; i < to; i++) {
-    const position = (i / sampleRate - start) / hop;
+    const t = i / sampleRate;
+    const position = (t - start) / hop;
     const k = Math.min(frames.length - 2, Math.floor(position));
     const x = position - k;
     const a = frames[k];
     const b = frames[k + 1];
-    phase = (phase + (TWO_PI * (a.f0 + (b.f0 - a.f0) * x)) / sampleRate) % TWO_PI;
+    const shake = wobble ? wobble * FLUTTER_HZ.reduce((sum, rate) => sum + Math.sin(TWO_PI * rate * t), 0) : 0;
+    phase = (phase + (TWO_PI * (a.f0 + (b.f0 - a.f0) * x) * (1 + shake)) / sampleRate) % TWO_PI;
     const count = Math.max(a.amplitudes.length, b.amplitudes.length);
     if (!count) continue;
 
