@@ -22,7 +22,8 @@ export function unlock() {
   ensureContext();
 }
 
-// 주어진 파동들({ frequency, amplitude })의 진폭 × cos 합을 같은 위상(동시 시작)으로 재생한다.
+// 주어진 파동들({ frequency, amplitude, envelope? })의 진폭 × cos 합을 같은 위상(동시 시작)으로 재생한다.
+// envelope { attack, stages: [{ level, timeConstant }] }이 있으면 파동마다 그 모양으로 커지고 줄어든다.
 // 나이퀴스트 주파수 이상은 재생할 수 없으므로 제외한다.
 // duration(초)을 주면 그 길이만큼만 재생하고 스스로 끝난다. 없으면 stop()까지 계속된다.
 export function play(waves, duration) {
@@ -33,18 +34,18 @@ export function play(waves, duration) {
 
   const now = ac.currentTime;
   const level = LEVEL / waves.reduce((sum, { amplitude }) => sum + amplitude, 0);
+  // 파동마다 시작 모양이 있으면 전체 시작은 바로 하고 그 모양을 따른다.
+  const attack = playable.some((wave) => wave.envelope) ? 0 : ATTACK;
   const output = ac.createGain();
   output.gain.setValueAtTime(0, now);
-  output.gain.linearRampToValueAtTime(level, now + ATTACK);
+  output.gain.linearRampToValueAtTime(level, now + attack);
   output.connect(ac.destination);
 
-  const oscillators = playable.map(({ frequency, amplitude }) => {
+  const oscillators = playable.map(({ frequency, amplitude, envelope }) => {
     const oscillator = ac.createOscillator();
     oscillator.setPeriodicWave(cosine);
     oscillator.frequency.value = frequency;
-    const gain = ac.createGain();
-    gain.gain.value = amplitude;
-    oscillator.connect(gain).connect(output);
+    for (const gain of waveGains(ac, now, amplitude, envelope)) oscillator.connect(gain).connect(output);
     oscillator.start(now);
     return oscillator;
   });
@@ -57,6 +58,22 @@ export function play(waves, duration) {
     output.gain.linearRampToValueAtTime(0, end);
     oscillators.forEach((oscillator) => oscillator.stop(end));
   }
+}
+
+// 파동 하나의 세기. envelope이 있으면 단계마다 attack 동안 커진 뒤 timeConstant로 줄어든다.
+function waveGains(ac, now, amplitude, envelope) {
+  if (!envelope) {
+    const gain = ac.createGain();
+    gain.gain.value = amplitude;
+    return [gain];
+  }
+  return envelope.stages.map(({ level, timeConstant }) => {
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(level, now + envelope.attack);
+    if (timeConstant) gain.gain.setTargetAtTime(0, now + envelope.attack, timeConstant);
+    return gain;
+  });
 }
 
 // 미리 계산한 소리(진폭 −1~1 배열)를 처음부터 끝까지 한 번 재생한다.
