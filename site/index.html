@@ -16,7 +16,13 @@
   </head>
   <body>
     <header class="page-header">
-      <h1>WaveMixer</h1>
+      <div class="header-row">
+        <h1>WaveMixer</h1>
+        <label class="switch" title="음계·음절·문장 재생에 짧은 방 울림을 더합니다(합성음 재생 제외)">
+          <input id="reverb" type="checkbox" role="switch" checked />
+          <span>잔향</span>
+        </label>
+      </div>
       <p>주파수가 다른 코사인파를 더해 파형을 만들고, 그 파형의 소리를 들어 보세요.</p>
       <div class="tabs" role="tablist" aria-label="페이지">
         <button id="tab-wave" type="button" role="tab" aria-controls="panel-wave">파형 만들기</button>
