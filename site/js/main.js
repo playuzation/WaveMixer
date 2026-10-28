@@ -30,6 +30,8 @@ import { renderTimeline } from './view/timeline.js';
 const SHOWN_PERIODS = 2;
 const NOTE_SECONDS = 2;
 const SPEECH_SAMPLE_RATE = 44100;
+// 음계·음절·문장 재생에는 잔향을 건다(머리글의 잔향 스위치로 끔). 합성음 재생은 순수한 코사인 합으로 둔다.
+const ROOM = { room: true };
 
 const $ = (id) => document.getElementById(id);
 const form = $('wave-form');
@@ -54,7 +56,7 @@ const notePad = createNotePad($('notes'), NOTES, {
     setMixPlaying(false);
     const waves = retune(history.present, note.frequency);
     const { name, vibrato } = ARTICULATIONS[articulation];
-    player.play(articulate(waves, name, note.frequency), duration, vibrato);
+    player.play(articulate(waves, name, note.frequency), duration, vibrato, ROOM);
   },
   onRelease() {
     player.stop();
@@ -229,6 +231,10 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+const reverbToggle = $('reverb');
+reverbToggle.addEventListener('change', () => player.setReverb(reverbToggle.checked));
+player.setReverb(reverbToggle.checked);
+
 for (const type of ['pointerup', 'keydown']) {
   document.addEventListener(type, player.unlock, { once: true });
 }
@@ -255,7 +261,7 @@ function updateSyllable(play) {
   const pitch = PITCH_NOTE[syllable.pitch] ? ` (${PITCH_NOTE[syllable.pitch]})` : '';
   $('syllable-info').textContent = `목소리 높이 ${syllable.f0} Hz${pitch} · 길이 ${Math.round(syllable.duration * 1000)} ms`;
   drawSyllable();
-  if (play) player.playBuffer(syllableSound, SPEECH_SAMPLE_RATE);
+  if (play) player.playBuffer(syllableSound, SPEECH_SAMPLE_RATE, ROOM);
 }
 
 // 미리 계산한 소리(진폭 배열) 전체를 캔버스에 그린다.
@@ -274,7 +280,7 @@ for (const key of ['speaker', 'onset', 'vowel', 'coda']) {
     updateSyllable(true);
   });
 }
-$('syllable-play').addEventListener('click', () => player.playBuffer(syllableSound, SPEECH_SAMPLE_RATE));
+$('syllable-play').addEventListener('click', () => player.playBuffer(syllableSound, SPEECH_SAMPLE_RATE, ROOM));
 
 // ── 문장 말하기 탭 ──
 // 문장을 발음 규칙·억양을 적용한 음절 목록으로 바꾸고(speech), 음절 소리를 이어 합성해(samples) 들려준다.
@@ -312,7 +318,7 @@ function speakSentence(text) {
   $('sentence-empty').hidden = true;
   $('sentence-play').disabled = false;
   drawSentence();
-  player.playBuffer(sentenceSound, SPEECH_SAMPLE_RATE);
+  player.playBuffer(sentenceSound, SPEECH_SAMPLE_RATE, ROOM);
 }
 
 function drawSentence() {
@@ -335,7 +341,7 @@ $('sentence-form').addEventListener('submit', (event) => {
   event.preventDefault();
   speakSentence(sentenceInput.value);
 });
-$('sentence-play').addEventListener('click', () => player.playBuffer(sentenceSound, SPEECH_SAMPLE_RATE));
+$('sentence-play').addEventListener('click', () => player.playBuffer(sentenceSound, SPEECH_SAMPLE_RATE, ROOM));
 
 // 탭을 바꾸면 재생 중인 소리를 멈춘다.
 createTabs($('tab-wave').parentElement, () => {
