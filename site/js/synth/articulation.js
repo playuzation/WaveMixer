@@ -4,6 +4,7 @@
 // - 모양 함수 shape(n, f): n = 기본 주파수에 대한 배음 번호, f = 주파수(Hz).
 //   반환 { attack, stages: [{ share: 세기 몫, rate: 줄어드는 빠르기 dB/s(없으면 유지) }] }
 // '지속'은 envelope 없이 지금처럼 모든 배음이 함께 울린다. 값은 docs에 근거와 추정 여부를 적었다.
+// vibrato { rate: Hz, depth: 센트 }가 있는 울림은 모든 배음의 높이를 함께 흔든다(audio/player).
 
 const DB_PER_NEPER = 20 / Math.LN10;
 
@@ -49,8 +50,10 @@ export const ARTICULATIONS = [
   },
   {
     name: '활',
-    detail: '바이올린처럼 약 40 ms에 걸쳐 커지고, 높은 배음이 조금씩 늦게 따라옵니다.',
+    detail: '바이올린처럼 약 40 ms에 걸쳐 커지고, 높은 배음이 조금씩 늦게 따라옵니다. 1초에 6.6번, ±32센트로 떨립니다(비브라토).',
     shape: sustained(0.04),
+    // 전문 연주자 측정값 6.63 Hz, 폭 63센트(위아래 합으로 봄)
+    vibrato: { rate: 6.63, depth: 31.5 },
   },
   {
     name: '관',
