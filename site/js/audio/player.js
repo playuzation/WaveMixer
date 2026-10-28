@@ -26,7 +26,8 @@ export function unlock() {
 // envelope { attack, stages: [{ level, timeConstant }] }이 있으면 파동마다 그 모양으로 커지고 줄어든다.
 // 나이퀴스트 주파수 이상은 재생할 수 없으므로 제외한다.
 // duration(초)을 주면 그 길이만큼만 재생하고 스스로 끝난다. 없으면 stop()까지 계속된다.
-export function play(waves, duration) {
+// vibrato { rate: Hz, depth: 센트 }를 주면 모든 파동의 높이를 같은 비율로 함께 흔든다.
+export function play(waves, duration, vibrato) {
   stop();
   const ac = ensureContext();
   const playable = waves.filter(({ frequency }) => frequency < ac.sampleRate / 2);
@@ -50,13 +51,25 @@ export function play(waves, duration) {
     return oscillator;
   });
 
-  track(output, oscillators);
+  const sources = [...oscillators];
+  if (vibrato) {
+    const lfo = ac.createOscillator();
+    lfo.frequency.value = vibrato.rate;
+    const depth = ac.createGain();
+    depth.gain.value = vibrato.depth;
+    lfo.connect(depth);
+    oscillators.forEach((oscillator) => depth.connect(oscillator.detune));
+    lfo.start(now);
+    sources.push(lfo);
+  }
+
+  track(output, sources);
 
   if (duration) {
     const end = now + duration;
     output.gain.setValueAtTime(level, end - RELEASE);
     output.gain.linearRampToValueAtTime(0, end);
-    oscillators.forEach((oscillator) => oscillator.stop(end));
+    sources.forEach((source) => source.stop(end));
   }
 }
 
