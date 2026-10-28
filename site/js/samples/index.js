@@ -1,16 +1,18 @@
 // 샘플 패키지 진입점. 각 데이터 모듈을 화면에 쓰는 공통 형태로 바꿔 그룹별로 내보낸다.
-// 샘플: { name, detail: [버튼 보조 문구 줄], basis: 근거 설명, components: 코사인파 [{ frequency, amplitude }] }
+// 샘플: { name, detail: [버튼 보조 문구 줄], basis: 근거 설명, components: 코사인파 [{ frequency, amplitude }],
+//        articulation?: 음계로 들을 때의 울림 이름(악기만) }
 import { INSTRUMENTS } from './instruments.js';
 import { SPEAKERS, VOWEL_SAMPLES, SYLLABLE_VOWELS, JAMO_VOWELS } from './vowels.js';
 import { ONSETS, CODAS, ONSET_TIMING, CODA_TIMING, TENSE_ONSETS, ONSET_PLACE, PLACE_LOCUS } from './consonants.js';
 import { harmonicSeries, formantSeries, noiseSeries, trackFrames } from './spectrum.js';
 import { layoutPhases, hangulSyllable } from './syllable.js';
 
-const instruments = INSTRUMENTS.map(({ name, pitch, f0, amplitudes, basis }) => ({
+const instruments = INSTRUMENTS.map(({ name, pitch, f0, amplitudes, articulation, basis }) => ({
   name,
   detail: [pitch, `${f0} Hz`],
   basis,
   components: harmonicSeries(f0, amplitudes),
+  articulation,
 }));
 
 // 주어진 포먼트 위에 화자의 높은 공명(upper)을 이어 붙여 높은 배음이 지나치게 약해지지 않게 한다.
