@@ -53,7 +53,8 @@ const notePad = createNotePad($('notes'), NOTES, {
   onPress(note, duration) {
     setMixPlaying(false);
     const waves = retune(history.present, note.frequency);
-    player.play(articulate(waves, ARTICULATIONS[articulation].name, note.frequency), duration);
+    const { name, vibrato } = ARTICULATIONS[articulation];
+    player.play(articulate(waves, name, note.frequency), duration, vibrato);
   },
   onRelease() {
     player.stop();
