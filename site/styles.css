@@ -12,6 +12,8 @@
   --danger: #c43c3b;
   --scope-line: #2a78d6;
   --scope-grid: #d4d2cb;
+  --scope-grid-strong: #a3a19a;
+  --scope-selection: rgba(42, 111, 201, 0.16);
   --track: #8f8d86;
   --radius: 14px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -30,6 +32,8 @@
     --danger: #e66767;
     --scope-line: #3987e5;
     --scope-grid: #3a3a37;
+    --scope-grid-strong: #66655f;
+    --scope-selection: rgba(57, 135, 229, 0.24);
     --track: #6b6a64;
   }
 }
@@ -80,9 +84,12 @@ p {
   gap: 4px;
   margin-top: 16px;
   border-bottom: 1px solid var(--border);
+  overflow-x: auto; /* 좁은 화면에서 탭 줄만 가로로 넘긴다 */
+  scrollbar-width: none;
 }
 
 .tabs [role='tab'] {
+  flex: none;
   min-height: 44px;
   padding: 0 16px;
   border: 0;
@@ -411,6 +418,63 @@ input:focus-visible {
   font-size: 0.7rem;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+/* 소리 닮기 */
+.scope.short {
+  height: clamp(120px, 26vw, 180px);
+}
+
+@media (min-width: 900px) {
+  .match-file {
+    grid-column: 1 / -1;
+  }
+}
+
+.file-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.file-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-button:focus-within {
+  outline: 2px solid var(--scope-line);
+  outline-offset: 2px;
+}
+
+.match-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .match-controls {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.match-controls label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.match-controls input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.match-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* 음절 만들기 */
