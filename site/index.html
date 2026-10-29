@@ -28,6 +28,7 @@
         <button id="tab-wave" type="button" role="tab" aria-controls="panel-wave">파형 만들기</button>
         <button id="tab-syllable" type="button" role="tab" aria-controls="panel-syllable">음절 만들기</button>
         <button id="tab-sentence" type="button" role="tab" aria-controls="panel-sentence">문장 말하기</button>
+        <button id="tab-match" type="button" role="tab" aria-controls="panel-match">소리 닮기</button>
       </div>
     </header>
 
@@ -210,6 +211,68 @@
           음절마다 「음절 만들기」와 같은 방식으로 소리를 만들어 잇습니다. 낱말마다 서울말 억양(낮게-높게 … 낮게-높게)을 주고,
           문장 끝은 내려 읽습니다.
         </p>
+      </section>
+    </div>
+    <div id="panel-match" class="layout syllable-layout match-layout" role="tabpanel" aria-labelledby="tab-match" hidden>
+      <section class="card match-file" aria-labelledby="match-file-title">
+        <div class="card-head">
+          <h2 id="match-file-title">소리 파일</h2>
+          <label class="button primary file-button">
+            <input id="match-file" type="file" accept="audio/*,.mp3,.wav" aria-describedby="match-file-hint" />
+            파일 고르기
+          </label>
+        </div>
+        <p id="match-file-hint" class="hint">
+          MP3·WAV 같은 소리 파일을 고르면 처음 10초를 코사인파로 닮게 만듭니다. 파일은 이 브라우저 안에서만 쓰고 어디에도 올리지 않습니다.
+        </p>
+        <p id="match-error" class="error" role="alert" hidden></p>
+        <div class="scope short">
+          <canvas id="match-overview" role="img" aria-label="원음 파형과 고른 구간"></canvas>
+          <p id="match-empty" class="scope-empty">파일을 고르면 파형이 여기에 표시됩니다.</p>
+        </div>
+        <p id="match-file-info" class="hint" aria-live="polite"></p>
+        <div class="match-controls">
+          <div class="choice-field">
+            <label id="match-position-title" for="match-position">구간 위치</label>
+            <input id="match-position" type="range" min="0" max="0" step="0.01" value="0" disabled />
+          </div>
+          <div class="choice-field">
+            <h3 id="match-count-title">코사인파 개수</h3>
+            <div id="match-count" class="choice-row" role="group" aria-labelledby="match-count-title"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="match-segment-title">
+        <h2 id="match-segment-title">한 구간 → 코사인 목록</h2>
+        <div class="scope short">
+          <canvas id="match-spectrum" role="img" aria-label="구간의 스펙트럼(선)과 고른 코사인파(막대)"></canvas>
+        </div>
+        <p id="match-segment-info" class="hint" aria-live="polite"></p>
+        <div class="match-actions">
+          <button id="match-play-segment" type="button" class="button" disabled>원음 듣기 (구간부터 1초)</button>
+          <button id="match-play-cosines" type="button" class="button" disabled>코사인 합 듣기 (1초)</button>
+          <button id="match-send" type="button" class="button primary" disabled>「파형 만들기」로 보내기</button>
+        </div>
+        <p class="hint">
+          스펙트럼(선)에서 반복되는 소리는 기본 주파수의 배음 자리를, 아닌 소리는 큰 봉우리를 골라(막대) 자연수 Hz 코사인파로 만듭니다.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="match-whole-title">
+        <div class="card-head">
+          <h2 id="match-whole-title">파일 전체 → 바뀌는 코사인</h2>
+          <button id="match-resynth" type="button" class="button primary" disabled>다시 합성</button>
+        </div>
+        <div class="scope short">
+          <canvas id="match-resynth-overview" role="img" aria-label="코사인파로 다시 합성한 파형"></canvas>
+        </div>
+        <p id="match-whole-info" class="hint" aria-live="polite"></p>
+        <div class="match-actions">
+          <button id="match-play-file" type="button" class="button" disabled>원음 듣기</button>
+          <button id="match-play-resynth" type="button" class="button" disabled>합성 듣기</button>
+        </div>
+        <p class="hint">10 ms마다 0.05초씩 같은 방법으로 코사인파를 고르고, 이웃한 것끼리 이어 높이와 세기를 이어지게 바꿉니다.</p>
       </section>
     </div>
     </main>

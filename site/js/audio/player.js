@@ -55,6 +55,18 @@ export function setReverb(on) {
   reverbOn = on;
 }
 
+// 소리 파일(ArrayBuffer, MP3·WAV 등 브라우저가 읽는 형식)을 한 채널(채널 평균)로 바꾼다.
+// 결과 { samples, sampleRate }. 읽지 못하면 오류를 던진다.
+export async function decode(data) {
+  const buffer = await ensureContext().decodeAudioData(data);
+  const samples = new Float32Array(buffer.length);
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const values = buffer.getChannelData(channel);
+    for (let i = 0; i < values.length; i++) samples[i] += values[i] / buffer.numberOfChannels;
+  }
+  return { samples, sampleRate: buffer.sampleRate };
+}
+
 // 모바일 브라우저는 사용자 동작 안에서만 오디오를 허용하므로, 첫 상호작용 때 미리 깨워 둔다.
 export function unlock() {
   ensureContext();
